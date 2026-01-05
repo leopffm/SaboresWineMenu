@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, minimum-scale=1.0, maximum-scale=3.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a1814">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Carta de Vinhos</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html {
+      background-color: #1a1814;
+    }
+    html, body, #root {
+      height: 100%;
+      min-height: 100vh;
+      /* FIX: Use dynamic viewport height to handle system bar changes */
+      min-height: 100dvh;
+      min-height: -webkit-fill-available;
+      background-color: #1a1814;
+      overflow-x: hidden;
+    }
+    body {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+    body { overscroll-behavior: none; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/papaparse@5/papaparse.min.js"></script>
+
+  <script>
+    // ============================================
+    // CONFIGURATION
+    // ============================================
+    const GOOGLE_SHEET_ID = '1Nk2NLY6Sfblk4LmV2-o7eg0SbihCuWakEmK8QT7qYms';
+
+    // Sheet URLs for each tab
+    const SHEETS = {
+      wines: `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=wines`,
+      config: `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=config`,
+      category_mapping: `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=category_mapping`,
+      subcategorias: `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=subcategorias`,
+    };
+
+    // ============================================
+    // APP CODE
+    // ============================================
+    const { useState, useEffect, useMemo, useRef } = React;
+
+    // Improved color palette for better contrast
+    const colors = {
+      bg: '#1a1814',
+      bgLight: '#252220',
+      text: '#f5f1eb',
+      textLight: '#d4cfc5',
+      textMuted: '#a8a299',
+      gold: '#d4b068',
+      goldLight: '#e8d4a8',
+      champagne: '#f7e7ce',
+      bio: '#8eb88e',
+      prodi: '#b898b8',
+    };
+
+    // Default category configuration
+    const defaultCategories = [
+      {
+        id: 'Aperitivo',
+        dataCategories: ['Aperitivo'],
+        name: { pt: 'Aperitivos', en: 'Aperitifs', fr: 'Apéritifs' },
+        subtitle: { pt: 'Para começar', en: 'To start', fr: 'Pour commencer' },
+        order: 1
+      },
+      {
+        id: 'GinVodka',
+        dataCategories: ['Gin', 'Vodka'],
+        name: { pt: 'Gin Tonic / Vodka Tonic', en: 'Gin Tonic / Vodka Tonic', fr: 'Gin Tonic / Vodka Tonic' },
+        subtitle: { pt: 'Clássicos & Premium', en: 'Classic & Premium', fr: 'Classiques et Premium' },
+        order: 2
+      },
+      {
+        id: 'Espumante',
+        dataCategories: ['Espumante'],
+        name: { pt: 'Espumantes', en: 'Sparkling Wines', fr: 'Crémants' },
+        subtitle: { pt: 'Espumantes Portugueses', en: 'Portuguese Sparkling', fr: 'Pétillants Portugais' },
+        order: 3
+      },
+      {
+        id: 'Champagne',
+        dataCategories: ['Champagne'],
+        name: { pt: 'Champagne', en: 'Champagne', fr: 'Champagne' },
+        subtitle: { pt: 'Les Grandes Maisons', en: 'Les Grandes Maisons', fr: 'Les Grandes Maisons' },
+        order: 4
+      },
+      {
+        id: 'Rosé',
+        dataCategories: ['Rosé'],
+        name: { pt: 'Vinhos Rosés', en: 'Rosé Wines', fr: 'Vins Rosés' },
+        subtitle: { pt: 'Seleção de Rosés', en: 'Rosé Selection', fr: 'Sélection de Rosés' },
+        hasGlass: true,
+        order: 5
+      },
+      {
+        id: 'Branco',
+        dataCategories: ['Branco'],
+        name: { pt: 'Vinhos Brancos', en: 'White Wines', fr: 'Vins Blancs' },
+        subtitle: { pt: 'Seleção de Brancos', en: 'White Selection', fr: 'Sélection de Blancs' },
+        hasGlass: true,
+        order: 6
+      },
+      {
+        id: 'Tinto',
+        dataCategories: ['Tinto'],
+        name: { pt: 'Vinhos Tintos', en: 'Red Wines', fr: 'Vins Rouges' },
+        subtitle: { pt: 'Seleção de Tintos', en: 'Red Selection', fr: 'Sélection de Rouges' },
+        hasGlass: true,
+        order: 7
+      },
+      {
+        id: 'CervejaSidra',
+        dataCategories: ['Cerveja', 'Sidra'],
+        name: { pt: 'Cervejas & Sidras', en: 'Beers & Ciders', fr: 'Bières et Cidres' },
+        subtitle: { pt: 'Produção Nacional', en: 'Portuguese Craft', fr: 'Production Nationale' },
+        order: 8
+      },
+      {
+        id: 'Generoso',
+        dataCategories: ['Generoso'],
+        name: { pt: 'Generosos', en: 'Fortified Wines', fr: 'Vins de Dessert' },
+        subtitle: { pt: 'Porto, Madeira, Moscatel & mais', en: 'Port, Madeira, Moscatel & more', fr: 'Porto, Madère, Moscatel et plus' },
+        order: 9
+      },
+      {
+        id: 'Rhum',
+        dataCategories: ['Rhum'],
+        name: { pt: 'Rum & Tequila', en: 'Rum & Tequila', fr: 'Rhum et Tequila' },
+        subtitle: { pt: 'Das Índias às Américas', en: 'From the Indies to the Americas', fr: 'Des Indes aux Amériques' },
+        order: 10
+      },
+      {
+        id: 'Aguardente',
+        dataCategories: ['Aguardente'],
+        name: { pt: 'Aguardentes', en: 'Brandies', fr: 'Eaux-de-Vie' },
+        subtitle: { pt: 'Brandies, Grappas, Cognac & Armagnac', en: 'Brandies, Grappas, Cognac & Armagnac', fr: 'Brandies, Grappas, Cognac et Armagnac' },
+        order: 11
+      },
+      {
+        id: 'LicorWhisky',
+        dataCategories: ['Licor', 'Whisky'],
+        name: { pt: 'Licores & Whiskies', en: 'Liqueurs & Whiskies', fr: 'Liqueurs et Whiskies' },
+        subtitle: { pt: 'Tradição Portuguesa & Maltes do Mundo', en: 'Portuguese Tradition & World Malts', fr: 'Tradition Portugaise et Malts du Monde' },
+        order: 12
+      },
+      {
+        id: 'BebidaCafetaria',
+        dataCategories: ['Bebida', 'Cafetaria'],
+        name: { pt: 'Águas & Cafetaria', en: 'Waters & Coffee', fr: 'Eaux et Café' },
+        subtitle: { pt: 'Bebidas & Infusões', en: 'Beverages & Infusions', fr: 'Boissons et Infusions' },
+        order: 13
+      },
+    ];
+
+    // NEW: Default Subcategories (Config)
+    // Allows specific subtitles even without the spreadsheet
+    const defaultSubcategories = {
+        'Branco': {
+            'Açores': {
+                ordem: 20, // Adjust order as needed
+                nome: { pt: 'Açores', en: 'Azores', fr: 'Açores' },
+                subtitle: {
+                    pt: 'Uma das 14 regiões vinícolas Património Mundial da UNESCO',
+                    en: 'One of only 14 UNESCO World Heritage vineyard sites worldwide',
+                    fr: "L'une des 14 régions viticoles classées au Patrimoine Mondial de l'UNESCO"
+                }
+            }
+        }
+    };
+
+    // Default config values
+    const defaultConfig = {
+      default_language: 'pt',
+      show_awards: true,
+      restaurant_name: ''
+    };
+
+    // Parse config sheet (key-value pairs)
+    const parseConfigSheet = (csvText) => {
+      const result = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+      const config = { ...defaultConfig };
+      result.data.forEach(row => {
+        if (row.setting && row.value !== undefined) {
+          const key = row.setting.trim().toLowerCase();
+          let value = row.value.trim();
+          // Convert string booleans
+          if (value.toLowerCase() === 'true') value = true;
+          else if (value.toLowerCase() === 'false') value = false;
+          config[key] = value;
+        }
+      });
+      return config;
+    };
+
+    // Parse category mapping sheet (full category configuration)
+    const parseCategoryMappingSheet = (csvText) => {
+      const result = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+      const mappings = [];
+      result.data.forEach(row => {
+        if (row.menu_id && row.categorias) {
+          mappings.push({
+            id: row.menu_id.trim(),
+            dataCategories: row.categorias.split(',').map(c => c.trim()).filter(c => c),
+            name: {
+              pt: row.nome_pt?.trim() || row.menu_id.trim(),
+              en: row.nome_en?.trim() || row.nome_pt?.trim() || row.menu_id.trim(),
+              fr: row.nome_fr?.trim() || row.nome_pt?.trim() || row.menu_id.trim()
+            },
+            subtitle: {
+              pt: row.subtitulo_pt?.trim() || '',
+              en: row.subtitulo_en?.trim() || row.subtitulo_pt?.trim() || '',
+              fr: row.subtitulo_fr?.trim() || row.subtitulo_pt?.trim() || ''
+            },
+            hasGlass: row.vinho_copo?.toLowerCase() === 'true',
+            order: parseInt(row.ordem) || 999,
+            visible: row.visivel?.toLowerCase() !== 'false'
+          });
+        }
+      });
+      return mappings;
+    };
+
+    // Parse subcategorias sheet (ordering and translations)
+    const parseSubcategoriasSheet = (csvText) => {
+      const result = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+
+      // Start with default config to ensure hardcoded subtitles exist
+      // We use deep copy to avoid mutation issues
+      const config = JSON.parse(JSON.stringify(defaultSubcategories));
+
+      result.data.forEach(row => {
+        if (row.categoria && row.subcategoria) {
+          const cat = row.categoria.trim();
+          const subcat = row.subcategoria.trim();
+          if (!config[cat]) config[cat] = {};
+
+          // Merge with existing or create new
+          config[cat][subcat] = {
+            ordem: parseInt(row.ordem) || 999,
+            nome: {
+              pt: row.nome_pt?.trim() || subcat,
+              en: row.nome_en?.trim() || row.nome_pt?.trim() || subcat,
+              fr: row.nome_fr?.trim() || row.nome_pt?.trim() || subcat
+            },
+            subtitle: {
+                pt: row.subtitulo_pt?.trim() || (config[cat][subcat]?.subtitle?.pt || ''),
+                en: row.subtitulo_en?.trim() || (config[cat][subcat]?.subtitle?.en || ''),
+                fr: row.subtitulo_fr?.trim() || (config[cat][subcat]?.subtitle?.fr || '')
+            }
+          };
+        }
+      });
+      return config;
+    };
+
+    // Apply category mapping - merge config with defaults
+    const applyCategoryMapping = (defaultCats, configMappings) => {
+      // If no config mappings, use defaults
+      if (!configMappings || configMappings.length === 0) {
+        return defaultCats.filter(cat => cat.visible !== false).sort((a, b) => a.order - b.order);
+      }
+
+      // Create a map of default categories by ID for fallback
+      const defaultMap = {};
+      defaultCats.forEach(cat => { defaultMap[cat.id] = cat; });
+
+      // Track which default categories are covered by config
+      const coveredIds = new Set();
+
+      // Build final category list from config
+      const configCategories = configMappings
+        .filter(cat => cat.visible !== false)
+        .map(cat => {
+          coveredIds.add(cat.id);
+          // Merge with default if exists (to get any missing properties)
+          const defaultCat = defaultMap[cat.id] || {};
+          return {
+            ...defaultCat,
+            ...cat,
+            name: cat.name.pt ? cat.name : (defaultCat.name || cat.name),
+            subtitle: cat.subtitle.pt ? cat.subtitle : (defaultCat.subtitle || cat.subtitle)
+          };
+        });
+
+      // Add any default categories not in config (with high order number)
+      const uncoveredDefaults = defaultCats
+        .filter(cat => !coveredIds.has(cat.id) && cat.visible !== false)
+        .map(cat => ({ ...cat, order: cat.order + 1000 })); // Push to end
+
+      // Combine and sort
+      return [...configCategories, ...uncoveredDefaults].sort((a, b) => a.order - b.order);
+    };
+
+    // Sort subcategories based on config (supports multiple source categories)
+    const sortSubcategories = (subcategories, dataCategories, subcategoriasConfig) => {
+      // Merge order maps from all source categories
+      const mergedConfig = {};
+      dataCategories.forEach(categoria => {
+        const catConfig = subcategoriasConfig[categoria] || {};
+        Object.keys(catConfig).forEach(subcat => {
+          // If not already set, or if this one has lower order, use it
+          if (!mergedConfig[subcat] || catConfig[subcat].ordem < mergedConfig[subcat].ordem) {
+            mergedConfig[subcat] = catConfig[subcat];
+          }
+        });
+      });
+
+      return [...subcategories].sort((a, b) => {
+        const orderA = mergedConfig[a]?.ordem ?? 999;
+        const orderB = mergedConfig[b]?.ordem ?? 999;
+        // If both have same order (or both not in config), sort alphabetically
+        if (orderA === orderB) return a.localeCompare(b);
+        return orderA - orderB;
+      });
+    };
+
+    // Get translated subcategory name
+    const getSubcategoryName = (subcategoria, dataCategories, subcategoriasConfig, language) => {
+      // Look through all source categories to find a translation
+      for (const categoria of dataCategories) {
+        const catConfig = subcategoriasConfig[categoria];
+        if (catConfig && catConfig[subcategoria]) {
+          return catConfig[subcategoria].nome[language] || subcategoria;
+        }
+      }
+      return subcategoria; // Fallback to original name
+    };
+
+    // Get translated subcategory subtitle
+    const getSubcategorySubtitle = (subcategoria, dataCategories, subcategoriasConfig, language) => {
+      for (const categoria of dataCategories) {
+        const catConfig = subcategoriasConfig[categoria];
+        if (catConfig && catConfig[subcategoria] && catConfig[subcategoria].subtitle) {
+          return catConfig[subcategoria].subtitle[language] || '';
+        }
+      }
+      return '';
+    };
+
+    // Main title translations
+    const titles = {
+      mainTitle: { pt: 'CARTA DE VINHOS', en: 'WINE LIST', fr: 'CARTE DES VINS' },
+      subtitle: { pt: 'Seleção da Casa', en: 'House Selection', fr: 'Sélection de la Maison' },
+      explore: { pt: 'Explorar', en: 'Explore', fr: 'Explorer' },
+      references: { pt: 'referências selecionadas', en: 'curated selections', fr: 'références sélectionnées' },
+      selection: { pt: 'Seleção', en: 'Selection', fr: 'Sélection' },
+      menu: { pt: 'Menu', en: 'Menu', fr: 'Menu' },
+      all: { pt: 'Todos', en: 'All', fr: 'Tous' },
+      wineByGlass: {
+        pt: 'Vinho a copo disponível — pergunte ao seu empregado de mesa',
+        en: 'Wine by the glass available — ask your waiter',
+        fr: 'Vin au verre disponible — demandez à votre serveur'
+      },
+      // UPDATED: Glass Note (Selection + Pergunte ao)
+      glassNote: {
+        pt: 'Seleção de vinhos a copo disponível. Pergunte ao seu empregado de mesa.',
+        en: 'Selection of wines by the glass available. Ask your waiter.',
+        fr: 'Sélection de vins au verre disponible. Demandez à votre serveur.'
+      },
+      // Take Away Note (with period for consistency)
+      takeAway: {
+        pt: 'Serviço de Take-away disponível.',
+        en: 'Take-away service available.',
+        fr: 'Service de vente à emporter disponible.'
+      },
+      back: { pt: 'Voltar', en: 'Back', fr: 'Retour' },
+      exclusive: {
+        pt: 'Produzido em exclusivo para Sabores d\'Itália',
+        en: 'Produced exclusively for Sabores d\'Itália',
+        fr: 'Produit exclusivement pour Sabores d\'Itália'
+      },
+    };
+
+    // UPDATED: Price Formatting Logic (Fixes 1,85 issue)
+    const formatPrice = (price) => {
+      if (!price) return '';
+      // 1. Convert input to string and remove ANY dots (thousands separators in input).
+      //    "1.850,00" becomes "1850,00"
+      const cleanInput = String(price).replace(/\./g, '');
+
+      // 2. Replace comma with dot to make it a valid JS number string.
+      //    "1850,00" becomes "1850.00"
+      const numValue = parseFloat(cleanInput.replace(',', '.'));
+
+      if (isNaN(numValue)) return price;
+
+      // 3. Format back to European:
+      //    toFixed(2) -> "1850.00"
+      //    replace dot with comma -> "1850,00"
+      //    add dots for thousands -> "1.850,00"
+      return '€' + numValue.toFixed(2)
+        .replace('.', ',')
+        .replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    };
+
+    const parseSheetData = (csvText) => {
+      const result = Papa.parse(csvText, { header: true, skipEmptyLines: true, transformHeader: h => h.trim().toLowerCase() });
+
+      // Debug: log headers
+      console.log('CSV Headers:', result.meta.fields);
+      if (result.data.length > 0) {
+        console.log('First row raw:', result.data[0]);
+      }
+
+      return result.data.map((row, index) => {
+        // Helper to parse boolean values from various formats
+        const parseBool = (val) => {
+          if (!val) return false;
+          const v = String(val).trim().toUpperCase();
+          return v === 'TRUE' || v === '1' || v === 'YES' || v === 'SIM';
+        };
+
+        const wine = {
+          id: index + 1,
+          categoria: row.categoria || '',
+          subcategoria: row.subcategoria || '',
+          nome: row.nome || '',
+          produtor: row.produtor || '',
+          castas: row.castas || '',
+          ano: row.ano || '',
+          notas: row.notas || '',
+          vol1: row.vol1 || '',
+          preco1: row.preco1 || '',
+          vol2: row.vol2 || '',
+          preco2: row.preco2 || '',
+          vol3: row.vol3 || '',
+          preco3: row.preco3 || '',
+          bio: parseBool(row.bio),
+          prodi: parseBool(row.prodi),
+          exclusivo: parseBool(row.exclusivo),
+        };
+
+        // Debug: log wines with exclusivo = true
+        if (wine.exclusivo) {
+          console.log('Found exclusive wine:', wine.nome);
+        }
+
+        return wine;
+      }).filter(wine => wine.nome && wine.categoria);
+    };
+
+    const LoadingScreen = () => (
+      React.createElement('div', {
+        style: { position: 'fixed', inset: 0, backgroundColor: colors.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }
+      },
+        React.createElement('div', { style: { color: colors.gold, fontSize: '1.25rem', fontWeight: 600, letterSpacing: '0.15em' } }, 'A carregar...')
+      )
+    );
+
+    const ErrorScreen = ({ message, onRetry }) => (
+      React.createElement('div', {
+        style: { position: 'fixed', inset: 0, backgroundColor: colors.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center' }
+      },
+        React.createElement('p', { style: { color: colors.textLight, fontSize: '1.2rem', fontWeight: 500, marginBottom: '1.5rem' } }, message),
+        React.createElement('button', {
+          onClick: onRetry,
+          style: { background: 'none', border: `1px solid ${colors.gold}`, color: colors.gold, padding: '0.875rem 2.5rem', fontSize: '1.1rem', fontWeight: 600, letterSpacing: '0.1em', cursor: 'pointer', fontFamily: "'Cormorant Garamond', Georgia, serif" }
+        }, 'Tentar novamente')
+      )
+    );
+
+    // Award translations
+    const awards = {
+      tripadvisor: {
+        pt: '5 melhores restaurantes em Portugal',
+        en: '5 best restaurants in Portugal',
+        fr: '5 meilleurs restaurants au Portugal'
+      }
+    };
+
+    const CoverScreen = ({ onEnter, language, setLanguage, wineCount }) => {
+      const [isVisible, setIsVisible] = useState(false);
+      useEffect(() => { setTimeout(() => setIsVisible(true), 100); }, []);
+
+      return React.createElement('div', {
+        style: { position: 'fixed', inset: 0, backgroundColor: colors.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }
+      },
+        React.createElement('div', {
+          // ADDED zIndex: 9999 to ensure this texture sits ABOVE sticky headers
+          style: { position: 'absolute', inset: 0, opacity: 0.02, pointerEvents: 'none', zIndex: 9999, backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }
+        }),
+        React.createElement('div', {
+          style: { position: 'relative', zIndex: 10, textAlign: 'center', padding: '0 2rem', transition: 'all 1.5s ease-out', opacity: isVisible ? 1 : 0, transform: isVisible ? 'translateY(0)' : 'translateY(2rem)' }
+        },
+          React.createElement('div', { style: { marginBottom: '2rem' } },
+            React.createElement('img', {
+              src: 'logo.png',
+              alt: 'Restaurant Logo',
+              style: { width: '10rem', height: 'auto', margin: '0 auto', opacity: 0.9 }
+            })
+          ),
+          React.createElement('h1', {
+            style: { fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '2.5rem', letterSpacing: '0.15em', color: colors.text, marginBottom: '0.75rem', fontWeight: 600 }
+          }, titles.mainTitle[language]),
+          React.createElement('p', {
+            style: { fontFamily: "'Cormorant Garamond', Georgia, serif", color: colors.goldLight, fontSize: '1.15rem', fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '3rem' }
+          }, titles.subtitle[language]),
+          React.createElement('div', {
+            style: { display: 'flex', justifyContent: 'center', gap: '2rem', marginBottom: '3rem' }
+          },
+            ['pt', 'en', 'fr'].map(lang =>
+              React.createElement('button', {
+                key: lang,
+                onClick: () => setLanguage(lang),
+                style: { background: 'none', border: 'none', color: language === lang ? colors.gold : colors.textMuted, fontSize: '1.1rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', paddingBottom: '0.25rem', borderBottom: language === lang ? `2px solid ${colors.gold}` : '2px solid transparent', transition: 'all 0.3s' }
+              }, lang)
+            )
+          ),
+          React.createElement('button', {
+            onClick: onEnter,
+            style: { background: 'none', border: `1px solid ${colors.textLight}`, color: colors.text, padding: '1rem 3rem', fontSize: '1.1rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.3s', fontFamily: "'Cormorant Garamond', Georgia, serif" },
+            onMouseOver: (e) => { e.target.style.borderColor = colors.gold; e.target.style.color = colors.gold; },
+            onMouseOut: (e) => { e.target.style.borderColor = colors.textLight; e.target.style.color = colors.text; }
+          }, titles.explore[language]),
+          // Wine count
+          React.createElement('p', {
+            style: { fontFamily: "'Cormorant Garamond', Georgia, serif", color: colors.textMuted, fontSize: '1rem', fontWeight: 500, letterSpacing: '0.1em', marginTop: '2.5rem' }
+          }, `${wineCount} ${titles.references[language]}`),
+          // Awards section - below references
+          React.createElement('div', {
+            style: { marginTop: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }
+          },
+            // All 4 awards horizontally aligned
+            React.createElement('div', {
+              style: { display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem' }
+            },
+              // TripAdvisor with text below (using relative container)
+              React.createElement('div', { style: { position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' } },
+                React.createElement('img', {
+                  src: 'award_tripadvisor.png',
+                  alt: 'TripAdvisor Best of the Best 2021',
+                  style: { height: '3.5rem', width: 'auto' }
+                }),
+                React.createElement('p', {
+                  style: { fontFamily: "'Cormorant Garamond', Georgia, serif", color: colors.textMuted, fontSize: '0.7rem', fontWeight: 500, maxWidth: '5.5rem', lineHeight: 1.3, textAlign: 'center', marginTop: '0.4rem', position: 'absolute', top: '100%' }
+                }, awards.tripadvisor[language])
+              ),
+              // Michelin
+              React.createElement('img', {
+                src: 'award_michelin.png',
+                alt: 'Michelin Recommended 2025',
+                style: { height: '3.5rem', width: 'auto' }
+              }),
+              // Wine Spectator
+              React.createElement('img', {
+                src: 'award_winespectator.png',
+                alt: 'Wine Spectator Best of Award of Excellence 2025',
+                style: { height: '4.5rem', width: 'auto' }
+              }),
+              // Fine Wine
+              React.createElement('img', {
+                src: 'award_finewine.png',
+                alt: 'Fine Wine World\'s Best Wine Lists 2024',
+                style: { height: '4.5rem', width: 'auto' }
+              })
+            )
+          )
+        )
+      );
+    };
+
+const WineCard = ({ wine, language = 'pt' }) => {
+      // Debug
+      if (wine.exclusivo) {
+        console.log('Rendering exclusive wine:', wine.nome, 'language:', language);
+      }
+
+      // Helper to format year ranges nicely (optional: converts "2020-2024" to "2020 – 2024")
+      const formatYear = (year) => {
+        if (!year) return null;
+        return String(year).replace('-', '–'); // Replaces hyphen with En-dash for better typography
+      };
+
+      return React.createElement('div', {
+        style: { borderBottom: `1px solid ${colors.textMuted}25`, padding: '1.25rem 0' }
+      },
+        React.createElement('div', {
+          style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }
+        },
+          React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+            // Wine name + year + badges (bio/prodi as images AFTER name)
+            React.createElement('div', {
+              style: { display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }
+            },
+              React.createElement('h3', {
+                style: { fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '1.4rem', color: colors.text, fontWeight: 600, letterSpacing: '0.01em' }
+              }, wine.nome),
+
+              // UPDATED YEAR RENDERING
+              wine.ano && React.createElement('span', {
+                  style: {
+                      color: colors.gold,
+                      fontSize: '1.2rem',
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap' // Keeps "2020 - 2024" on one line
+                  }
+              }, formatYear(wine.ano)),
+
+              // Bio and Prodi icons AFTER the name and year
+              wine.bio && React.createElement('img', {
+                src: 'bio_logo.png',
+                alt: 'Bio',
+                style: { height: '1.3rem', width: 'auto', verticalAlign: 'middle' }
+              }),
+              wine.prodi && React.createElement('img', {
+                src: 'prodi_logo.png',
+                alt: 'Prodi',
+                style: { height: '1.3rem', width: 'auto', verticalAlign: 'middle' }
+              })
+            ),
+
+            // Exclusive Tag - MOVED HERE (Below Name/Year)
+            wine.exclusivo && React.createElement('div', {
+              style: { marginTop: '0.4rem', marginBottom: '0.2rem' }
+            },
+               React.createElement('span', {
+                 style: {
+                   display: 'inline-block',
+                   fontFamily: "'Cormorant Garamond', Georgia, serif",
+                   color: colors.gold,
+                   backgroundColor: `${colors.gold}15`,
+                   border: `1px solid ${colors.gold}60`,
+                   fontSize: '0.75rem',
+                   fontWeight: 600,
+                   textTransform: 'uppercase',
+                   letterSpacing: '0.1em',
+                   padding: '0.2rem 0.5rem',
+                   borderRadius: '2px',
+                   boxShadow: `0 0 10px ${colors.gold}20`
+                 }
+               }, titles.exclusive[language] || titles.exclusive.pt)
+            ),
+
+            // Producer
+            React.createElement('div', {
+              style: { display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.35rem', flexWrap: 'wrap' }
+            },
+              wine.produtor && React.createElement('span', { style: { fontFamily: "'Cormorant Garamond', Georgia, serif", color: colors.textLight, fontSize: '1.1rem', fontWeight: 600 } }, wine.produtor)
+            ),
+            // Castas/Grapes
+            wine.castas && React.createElement('p', { style: { fontFamily: "'Cormorant Garamond', Georgia, serif", color: colors.textMuted, fontSize: '1.05rem', marginTop: '0.5rem', fontStyle: 'italic', fontWeight: 600 } }, wine.castas),
+            // Notes/Ratings
+            wine.notas && React.createElement('p', { style: { color: colors.gold, fontSize: '0.95rem', fontWeight: 600, marginTop: '0.4rem', letterSpacing: '0.02em' } }, wine.notas)
+          ),
+          // Prices
+          React.createElement('div', { style: { textAlign: 'right', flexShrink: 0 } },
+            React.createElement('div', { style: { display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', gap: '0.5rem' } },
+              React.createElement('span', { style: { fontFamily: "'Spectral', Georgia, serif", color: colors.textLight, fontSize: '1rem', fontWeight: 400 } }, wine.vol1),
+              React.createElement('span', { style: { fontFamily: "'Spectral', Georgia, serif", color: colors.text, fontSize: '1.2rem', fontWeight: 500, minWidth: '4.5rem', textAlign: 'right' } }, formatPrice(wine.preco1))
+            ),
+            wine.vol2 && wine.preco2 && React.createElement('div', { style: { display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.3rem' } },
+              React.createElement('span', { style: { fontFamily: "'Spectral', Georgia, serif", color: colors.textLight, fontSize: '1rem', fontWeight: 400 } }, wine.vol2),
+              React.createElement('span', { style: { fontFamily: "'Spectral', Georgia, serif", color: colors.text, fontSize: '1.2rem', fontWeight: 500, minWidth: '4.5rem', textAlign: 'right' } }, formatPrice(wine.preco2))
+            ),
+            wine.vol3 && wine.preco3 && React.createElement('div', { style: { display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.3rem' } },
+              React.createElement('span', { style: { fontFamily: "'Spectral', Georgia, serif", color: colors.textLight, fontSize: '1rem', fontWeight: 400 } }, wine.vol3),
+              React.createElement('span', { style: { fontFamily: "'Spectral', Georgia, serif", color: colors.text, fontSize: '1.2rem', fontWeight: 500, minWidth: '4.5rem', textAlign: 'right' } }, formatPrice(wine.preco3))
+            )
+          )
+        )
+      );
+    };
+
+    // Sticky section header component with updated subtitle support
+    const StickyRegionHeader = ({ region, displayName, subtitle }) => (
+      React.createElement('div', {
+        style: {
+          position: 'sticky',
+          top: '3.5rem',  // Below the sticky back button
+          zIndex: 15,
+          backgroundColor: colors.bg,
+          borderBottom: `1px solid ${colors.gold}40`,
+          padding: '1rem 0',
+          marginTop: '1.5rem',
+          marginBottom: '0.5rem'
+        }
+      },
+        React.createElement('h2', {
+          style: {
+            fontFamily: "'Cormorant Garamond', Georgia, serif",
+            fontSize: '1.4rem',
+            color: colors.gold,
+            fontWeight: 600,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase'
+          }
+        }, displayName || region),
+        // Renders subtitle if it exists
+        subtitle && React.createElement('p', {
+            style: {
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                fontSize: '1rem',
+                color: colors.textMuted,
+                fontStyle: 'italic',
+                marginTop: '0.3rem',
+                textAlign: 'left' // Explicitly left align
+            }
+        }, subtitle)
+      )
+    );
+
+    // Sticky back button component
+    const StickyBackButton = ({ onClick, label }) => (
+      React.createElement('div', {
+        style: {
+          position: 'sticky',
+          top: 0,
+          zIndex: 20,
+          backgroundColor: colors.bg,
+          padding: '1rem 0',
+          marginBottom: '1rem',
+          borderBottom: `1px solid ${colors.textMuted}15`
+        }
+      },
+        React.createElement('button', {
+          onClick: onClick,
+          style: { background: 'none', border: 'none', color: colors.textLight, fontSize: '1.1rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'color 0.3s' },
+          onMouseOver: (e) => e.currentTarget.style.color = colors.gold,
+          onMouseOut: (e) => e.currentTarget.style.color = colors.textLight
+        },
+          React.createElement('span', {}, '←'),
+          React.createElement('span', {}, label)
+        )
+      )
+    );
+
+    const WineMenuApp = () => {
+      const [wineData, setWineData] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState(null);
+      const [showCover, setShowCover] = useState(true);
+      const [language, setLanguage] = useState('pt');
+      const [selectedCategory, setSelectedCategory] = useState(null);
+      const [selectedRegion, setSelectedRegion] = useState(null);
+      const [isTransitioning, setIsTransitioning] = useState(false);
+
+      useEffect(() => {
+        const scrollToTop = () => {
+          // 1. Try standard window scroll
+          window.scrollTo(0, 0);
+
+          // 2. FORCE scroll on the #root element (Critical for your CSS)
+          const rootEl = document.getElementById('root');
+          if (rootEl) {
+            rootEl.scrollTop = 0;
+          }
+
+          // 3. Fallbacks for other browsers
+          document.body.scrollTop = 0;
+          document.documentElement.scrollTop = 0;
+        };
+
+        // Run immediately
+        scrollToTop();
+
+        // Run again after a tiny delay to catch any rendering lag
+        const timer = setTimeout(scrollToTop, 20);
+
+        // NEW: Handle visibility change (unlocking tablet/switching apps)
+        const handleVisibilityChange = () => {
+          if (document.visibilityState === 'visible') {
+            // Force reset when unlocking to fix white bar issue
+            setTimeout(scrollToTop, 50);
+            setTimeout(scrollToTop, 200); // Double tap to be sure
+          }
+        };
+
+        // Add listeners for resize and visibility change
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('resize', scrollToTop);
+
+        return () => {
+            clearTimeout(timer);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('resize', scrollToTop);
+        };
+      }, [selectedCategory, selectedRegion]);
+
+      // Config state
+      const [appConfig, setAppConfig] = useState(defaultConfig);
+      const [categoryMappings, setCategoryMappings] = useState([]);
+      const [subcategoriasConfig, setSubcategoriasConfig] = useState({});
+      const [categories, setCategories] = useState(defaultCategories);
+
+      // Fetch helper with error handling
+      const fetchSheet = async (url) => {
+        try {
+          const response = await fetch(url);
+          if (!response.ok) return null;
+          return await response.text();
+        } catch (err) {
+          console.warn('Could not fetch sheet:', url);
+          return null;
+        }
+      };
+
+      const fetchAllData = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          // Fetch wines (required)
+          const winesResponse = await fetch(SHEETS.wines);
+          if (!winesResponse.ok) throw new Error('Failed to fetch wines');
+          const winesCsv = await winesResponse.text();
+          const wines = parseSheetData(winesCsv);
+          setWineData(wines);
+
+          // Fetch config sheets (optional - use defaults if not available)
+          const [configCsv, categoryMappingCsv, subcategoriasCsv] = await Promise.all([
+            fetchSheet(SHEETS.config),
+            fetchSheet(SHEETS.category_mapping),
+            fetchSheet(SHEETS.subcategorias)
+          ]);
+
+          // Parse config
+          if (configCsv) {
+            const config = parseConfigSheet(configCsv);
+            setAppConfig(config);
+            if (config.default_language) {
+              setLanguage(config.default_language);
+            }
+          }
+
+          // Parse category mapping
+          let catMappings = [];
+          if (categoryMappingCsv) {
+            catMappings = parseCategoryMappingSheet(categoryMappingCsv);
+            setCategoryMappings(catMappings);
+          }
+
+          // Parse subcategorias (ordering and translations)
+          // We pass the CSV (even if null) to the parser, which now has defaults
+          const subConfig = parseSubcategoriasSheet(subcategoriasCsv || '');
+          setSubcategoriasConfig(subConfig);
+
+          // Apply category mapping
+          const orderedCategories = applyCategoryMapping(defaultCategories, catMappings);
+          setCategories(orderedCategories);
+
+        } catch (err) {
+          console.error('Error fetching data:', err);
+          setError('Não foi possível carregar a carta de vinhos.');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      useEffect(() => { fetchAllData(); }, []);
+
+      const currentCategory = categories.find(c => c.id === selectedCategory);
+
+      // Filter wines based on selected category's data categories
+      const filteredWines = useMemo(() => {
+        let wines = wineData;
+        if (selectedCategory && currentCategory) {
+          wines = wines.filter(w => currentCategory.dataCategories.includes(w.categoria));
+        }
+        if (selectedRegion) {
+          wines = wines.filter(w => w.subcategoria === selectedRegion);
+        }
+        return wines;
+      }, [wineData, selectedCategory, selectedRegion, currentCategory]);
+
+      // Group wines by subcategory for sticky headers (with custom ordering)
+      const winesByRegion = useMemo(() => {
+        if (selectedRegion) return null; // Don't group if a specific region is selected
+
+        const groups = {};
+        filteredWines.forEach(wine => {
+          const region = wine.subcategoria || 'Outros';
+          if (!groups[region]) groups[region] = [];
+          groups[region].push(wine);
+        });
+
+        // Get all dataCategories for ordering (merges from all source categories)
+        const dataCategories = currentCategory?.dataCategories || [];
+
+        // Sort regions based on config, then alphabetically
+        const sortedRegions = sortSubcategories(Object.keys(groups), dataCategories, subcategoriasConfig);
+
+        return sortedRegions.map(region => ({ region, wines: groups[region] }));
+      }, [filteredWines, selectedRegion, currentCategory, subcategoriasConfig]);
+
+      // Get regions for current category (from all data categories in the group) - with custom ordering
+      const regions = useMemo(() => {
+        if (!selectedCategory || !currentCategory) return [];
+        const categoryWines = wineData.filter(w => currentCategory.dataCategories.includes(w.categoria));
+        const uniqueRegions = [...new Set(categoryWines.map(w => w.subcategoria).filter(Boolean))];
+
+        // Get all dataCategories for ordering
+        const dataCategories = currentCategory.dataCategories || [];
+
+        return sortSubcategories(uniqueRegions, dataCategories, subcategoriasConfig);
+      }, [wineData, selectedCategory, currentCategory, subcategoriasConfig]);
+
+      // Helper to get translated region name
+      const getRegionName = (region) => {
+        if (!currentCategory) return region;
+        return getSubcategoryName(region, currentCategory.dataCategories, subcategoriasConfig, language);
+      };
+
+      // NEW: Helper to get region subtitle
+      const getRegionSubtitle = (region) => {
+        if (!currentCategory) return '';
+        return getSubcategorySubtitle(region, currentCategory.dataCategories, subcategoriasConfig, language);
+      };
+
+      const handleEnter = () => { setIsTransitioning(true); setTimeout(() => setShowCover(false), 500); };
+      const handleCategorySelect = (catId) => { setSelectedCategory(catId); setSelectedRegion(null); };
+      const handleBack = () => { setSelectedCategory(null); setSelectedRegion(null); };
+      const handleBackToCover = () => { setShowCover(true); setIsTransitioning(false); };
+
+      if (loading) return React.createElement(LoadingScreen);
+      if (error) return React.createElement(ErrorScreen, { message: error, onRetry: fetchAllData });
+
+      if (showCover) {
+        return React.createElement('div', { style: { transition: 'opacity 0.5s', opacity: isTransitioning ? 0 : 1 } },
+          React.createElement(CoverScreen, { onEnter: handleEnter, language: language, setLanguage: setLanguage, wineCount: wineData.length })
+        );
+      }
+
+      const textureEl = React.createElement('div', {
+        // ADDED zIndex: 9999 to ensure this texture sits ABOVE sticky headers
+        style: { position: 'fixed', inset: 0, pointerEvents: 'none', opacity: 0.02, zIndex: 9999, backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }
+      });
+
+      const styleEl = React.createElement('style', {}, `@keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }`);
+
+      // Category list view
+      if (!selectedCategory) {
+        return React.createElement('div', { style: { minHeight: '100vh', backgroundColor: colors.bg, color: colors.text } },
+          textureEl,
+          React.createElement('div', { style: { position: 'relative', zIndex: 10, maxWidth: '36rem', margin: '0 auto', padding: '1rem 2rem 4rem' } },
+            // Sticky back button
+            React.createElement(StickyBackButton, { onClick: handleBackToCover, label: titles.back[language] }),
+            // Header
+            React.createElement('div', { style: { textAlign: 'center', marginBottom: '3rem' } },
+              React.createElement('p', { style: { color: colors.gold, fontSize: '1.05rem', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.75rem' } }, titles.selection[language]),
+              React.createElement('h1', { style: { fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '2.2rem', letterSpacing: '0.1em', fontWeight: 600 } }, titles.mainTitle[language]),
+              React.createElement('div', { style: { marginTop: '1.5rem', display: 'flex', justifyContent: 'center' } },
+                React.createElement('div', { style: { width: '3rem', height: '2px', backgroundColor: colors.gold } })
+              )
+            ),
+            // Categories
+            React.createElement('nav', {},
+              categories.map((cat, index) =>
+                React.createElement('button', {
+                  key: cat.id,
+                  onClick: () => handleCategorySelect(cat.id),
+                  style: { width: '100%', textAlign: 'left', padding: '1.35rem 0', background: 'none', border: 'none', borderBottom: `1px solid ${colors.textMuted}25`, cursor: 'pointer', transition: 'all 0.3s', animation: `fadeInUp 0.6s ease-out ${index * 80}ms forwards`, opacity: 0 },
+                  onMouseOver: (e) => { e.currentTarget.style.borderBottomColor = colors.textMuted; e.currentTarget.querySelector('h2').style.color = colors.gold; e.currentTarget.querySelector('.arrow').style.color = colors.gold; },
+                  onMouseOut: (e) => { e.currentTarget.style.borderBottomColor = `${colors.textMuted}25`; e.currentTarget.querySelector('h2').style.color = colors.text; e.currentTarget.querySelector('.arrow').style.color = colors.textMuted; }
+                },
+                  React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' } },
+                    React.createElement('div', {},
+                      React.createElement('h2', { style: { fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '1.45rem', letterSpacing: '0.03em', color: colors.text, fontWeight: 600, transition: 'color 0.3s' } }, cat.name[language]),
+                      React.createElement('p', { style: { fontFamily: "'Cormorant Garamond', Georgia, serif", color: colors.goldLight, fontSize: '1.1rem', marginTop: '0.3rem', letterSpacing: '0.03em', fontWeight: 500 } }, cat.subtitle[language])
+                    ),
+                    React.createElement('span', { className: 'arrow', style: { color: colors.textMuted, fontSize: '1.2rem', fontWeight: 600, transition: 'color 0.3s' } }, '→')
+                  )
+                )
+              )
+            ),
+            // Footer note
+            React.createElement('div', { style: { marginTop: '3rem', textAlign: 'center' } },
+              // Note 1: Wine by glass (Same style as Take-away)
+              React.createElement('p', {
+                style: {
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  color: colors.textLight,  // Lighter color for better readability
+                  fontSize: '1.1rem',
+                  fontWeight: 500,
+                  letterSpacing: '0.02em',
+                  lineHeight: 1.6,
+                  marginBottom: '0.5rem' // Small gap between the two notes
+                }
+              }, titles.glassNote[language]),
+
+              // Note 2: Take-away (Harmonized style)
+              React.createElement('p', {
+                style: {
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  color: colors.textLight,  // Lighter color for better readability
+                  fontSize: '1.1rem',
+                  fontWeight: 500,
+                  letterSpacing: '0.02em'
+                }
+              }, titles.takeAway[language])
+            )
+          ),
+          styleEl
+        );
+      }
+
+      // Wine list view with sticky headers
+      return React.createElement('div', { style: { minHeight: '100vh', backgroundColor: colors.bg, color: colors.text } },
+        textureEl,
+        React.createElement('div', { style: { position: 'relative', zIndex: 10, maxWidth: '42rem', margin: '0 auto', padding: '1rem 2rem 3rem' } },
+          // Sticky back button
+          React.createElement(StickyBackButton, { onClick: handleBack, label: titles.menu[language] }),
+          // Category header
+          React.createElement('div', { style: { marginBottom: '2rem' } },
+            React.createElement('h1', { style: { fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '2.2rem', letterSpacing: '0.08em', fontWeight: 600 } }, currentCategory?.name[language]),
+            React.createElement('p', { style: { fontFamily: "'Cormorant Garamond', Georgia, serif", color: colors.goldLight, fontSize: '1.15rem', marginTop: '0.5rem', letterSpacing: '0.03em', fontWeight: 500 } }, currentCategory?.subtitle[language]),
+            currentCategory?.hasGlass && React.createElement('p', { style: { fontFamily: "'Cormorant Garamond', Georgia, serif", color: colors.gold, fontSize: '1rem', fontWeight: 600, marginTop: '1rem', letterSpacing: '0.03em', fontStyle: 'italic' } }, titles.wineByGlass[language])
+          ),
+          // Region filter buttons (only show if more than one region)
+          regions.length > 1 && React.createElement('div', { style: { marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '1.25rem' } },
+            React.createElement('button', {
+              onClick: () => setSelectedRegion(null),
+              style: { background: 'none', border: 'none', fontSize: '1.1rem', fontWeight: 600, letterSpacing: '0.03em', cursor: 'pointer', paddingBottom: '0.25rem', borderBottom: !selectedRegion ? `2px solid ${colors.gold}` : '2px solid transparent', color: !selectedRegion ? colors.gold : colors.textLight, fontFamily: "'Cormorant Garamond', Georgia, serif", transition: 'all 0.3s' }
+            }, titles.all[language]),
+            regions.map(region =>
+              React.createElement('button', {
+                key: region,
+                onClick: () => setSelectedRegion(region),
+                style: { background: 'none', border: 'none', fontSize: '1.1rem', fontWeight: 600, letterSpacing: '0.03em', cursor: 'pointer', paddingBottom: '0.25rem', borderBottom: selectedRegion === region ? `2px solid ${colors.gold}` : '2px solid transparent', color: selectedRegion === region ? colors.gold : colors.textLight, fontFamily: "'Cormorant Garamond', Georgia, serif", transition: 'all 0.3s' }
+              }, getRegionName(region))
+            )
+          ),
+          // Wine list with sticky headers when no specific region is selected
+          selectedRegion ? (
+            // Simple flat list when a specific region is selected
+            React.createElement('div', {},
+              // Use the SAME StickyRegionHeader component used in the grouped list!
+              // This ensures consistency (left alignment, sticky behavior, styles)
+              React.createElement(StickyRegionHeader, {
+                  region: selectedRegion,
+                  displayName: getRegionName(selectedRegion),
+                  subtitle: getRegionSubtitle(selectedRegion)
+              }),
+              filteredWines.map((wine, index) =>
+                React.createElement('div', { key: wine.id, style: { animation: `fadeInUp 0.5s ease-out ${Math.min(index, 15) * 40}ms forwards`, opacity: 0 } },
+                  React.createElement(WineCard, { wine: wine, language: language })
+                )
+              )
+            )
+          ) : (
+            // Grouped list with sticky region headers
+            React.createElement('div', {},
+              winesByRegion && winesByRegion.map((group, groupIndex) =>
+                React.createElement('div', { key: group.region },
+                  // Pass subtitle prop to sticky header
+                  React.createElement(StickyRegionHeader, {
+                      region: group.region,
+                      displayName: getRegionName(group.region),
+                      subtitle: getRegionSubtitle(group.region)
+                  }),
+                  group.wines.map((wine, index) =>
+                    React.createElement('div', { key: wine.id, style: { animation: `fadeInUp 0.4s ease-out ${Math.min(index, 10) * 30}ms forwards`, opacity: 0 } },
+                      React.createElement(WineCard, { wine: wine, language: language })
+                    )
+                  )
+                )
+              )
+            )
+          ),
+          React.createElement('div', { style: { marginTop: '4rem', paddingTop: '2rem', borderTop: `1px solid ${colors.textMuted}25`, textAlign: 'center' } },
+            React.createElement('p', { style: { color: colors.textMuted, fontSize: '1rem', fontWeight: 500, letterSpacing: '0.08em' } }, `${filteredWines.length} ${titles.references[language]}`)
+          )
+        ),
+        styleEl
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(WineMenuApp));
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(registration => console.log('SW registered:', registration.scope))
+          .catch(error => console.log('SW registration failed:', error));
+      });
+    }
+  </script>
+</body>
+</html>

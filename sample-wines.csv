@@ -1,0 +1,17 @@
+categoria,subcategoria,nome,produtor,castas,ano,notas,vol1,preco1,vol2,preco2,vol3,preco3,bio,prodi,exclusivo
+Champagne,,Salon Le Mesnil,Salon,Chardonnay,2012,99/100 Wine Enthusiast,75cl,1850,150cl,3900,,,FALSE,FALSE,FALSE
+Champagne,,Dom Pérignon,Moët & Chandon,"Pinot Noir, Chardonnay",2009,96/100 Wine Spectator,75cl,350,150cl,750,,,FALSE,FALSE,FALSE
+Champagne,,Cristal,Louis Roederer,"Pinot Noir, Chardonnay",2012,98/100 Robert Parker,75cl,450,,,,,FALSE,FALSE,FALSE
+Espumante,Douro,Vértice,Caves Transmontanas,Blanc de Noir · Pinot Noir · 8 anos de estágio,2013,19/20 Grandes Escolhas,75cl,95,,,,,FALSE,FALSE,FALSE
+Espumante,Bairrada,Luís Pato Vinha Formal,Luís Pato,"Cercial, Bical",2013,,75cl,45,,,,,FALSE,FALSE,FALSE
+Branco,Minho,Palácio da Breijoeira,Palácio da Breijoeira,Alvarinho,2022,94/100 Wines & Spirits,15cl,9.50,75cl,42.50,,,FALSE,FALSE,FALSE
+Branco,Douro,Quinta do Noval Reserva,Quinta do Noval,"Gouveio, Viosinho",2021,18/20 Revista Vinhos,75cl,95,,,,,FALSE,FALSE,FALSE
+Branco,Douro,Sabores d'Itália Exclusivo Branco,Quinta Especial,Encruzado,2022,,75cl,65,,,,,FALSE,FALSE,TRUE
+Branco,Dão,Villa Oliveira,Casa da Passarella,Encruzado,2020,18/20 Revista Vinhos,75cl,135,,,,,FALSE,FALSE,FALSE
+Tinto,Douro,Barca Velha,Casa Ferreirinha,"Touriga Franca, Touriga Nacional",2015,97/100 Robert Parker,75cl,850,150cl,1600,,,FALSE,TRUE,FALSE
+Tinto,Douro,Quinta do Noval Nacional,Quinta do Noval,,2017,100/100 Robert Parker,75cl,2450,,,,,FALSE,FALSE,FALSE
+Tinto,Douro,Sabores d'Itália Grande Reserva,Produtor Exclusivo,"Touriga Nacional, Tinta Roriz",2019,,75cl,95,150cl,180,,,FALSE,FALSE,TRUE
+Tinto,Douro,Redoma,Niepoort,"Tinta Amarela, Touriga Franca",2017,94/100 Robert Parker,15cl,14,75cl,60,150cl,115,FALSE,FALSE,FALSE
+Tinto,Alentejo,Pêra-Manca,Fundação Eugénio de Almeida,"Trincadeira, Aragonez",2018,Top 30 Excelência 2024,75cl,595,,,,,FALSE,FALSE,FALSE
+Generoso,Porto Vintage,Quinta do Noval Nacional,Quinta do Noval,,2017,100/100 Robert Parker,75cl,2450,,,,,FALSE,FALSE,FALSE
+Generoso,Madeira,Blandy's Terrantez Frasqueira,Blandy's,,1980,,5cl,42.50,,,,,FALSE,FALSE,FALSE

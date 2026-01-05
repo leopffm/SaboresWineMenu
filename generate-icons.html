@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Generate PWA Icons</title>
+  <style>
+    body { font-family: system-ui; padding: 2rem; background: #f5f5f5; }
+    .container { max-width: 600px; margin: 0 auto; }
+    h1 { color: #1a1814; }
+    .preview { display: flex; gap: 2rem; margin: 2rem 0; }
+    .icon-box { text-align: center; }
+    canvas { border: 1px solid #ccc; border-radius: 8px; }
+    button { 
+      background: #1a1814; color: #c9a55c; border: none; 
+      padding: 1rem 2rem; font-size: 1rem; cursor: pointer; 
+      border-radius: 4px; margin-top: 1rem;
+    }
+    button:hover { background: #2a2824; }
+    .instructions { background: white; padding: 1rem; border-radius: 8px; margin-top: 2rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🍷 Wine Menu PWA Icon Generator</h1>
+    <p>Click the buttons below to download the icons for your PWA.</p>
+    
+    <div class="preview">
+      <div class="icon-box">
+        <canvas id="icon192" width="192" height="192"></canvas>
+        <br>
+        <button onclick="download('icon192', 'icon-192.png')">Download 192x192</button>
+      </div>
+      <div class="icon-box">
+        <canvas id="icon512" width="512" height="512"></canvas>
+        <br>
+        <button onclick="download('icon512', 'icon-512.png')">Download 512x512</button>
+      </div>
+    </div>
+    
+    <div class="instructions">
+      <h3>Instructions:</h3>
+      <ol>
+        <li>Download both icons</li>
+        <li>Place them in your wine-menu-pwa folder</li>
+        <li>Make sure they're named <code>icon-192.png</code> and <code>icon-512.png</code></li>
+      </ol>
+      <p><strong>Tip:</strong> You can replace these with your restaurant's logo later!</p>
+    </div>
+  </div>
+  
+  <script>
+    function drawIcon(canvas) {
+      const ctx = canvas.getContext('2d');
+      const size = canvas.width;
+      const scale = size / 100;
+      
+      // Background
+      ctx.fillStyle = '#1a1814';
+      ctx.fillRect(0, 0, size, size);
+      
+      // Wine glass stem
+      ctx.strokeStyle = '#c9a55c';
+      ctx.lineWidth = 2 * scale;
+      ctx.beginPath();
+      ctx.moveTo(50 * scale, 55 * scale);
+      ctx.lineTo(50 * scale, 75 * scale);
+      ctx.stroke();
+      
+      // Wine glass base
+      ctx.beginPath();
+      ctx.moveTo(35 * scale, 75 * scale);
+      ctx.lineTo(65 * scale, 75 * scale);
+      ctx.stroke();
+      
+      // Wine glass bowl (outline)
+      ctx.beginPath();
+      ctx.moveTo(30 * scale, 25 * scale);
+      ctx.quadraticCurveTo(30 * scale, 55 * scale, 50 * scale, 55 * scale);
+      ctx.quadraticCurveTo(70 * scale, 55 * scale, 70 * scale, 25 * scale);
+      ctx.stroke();
+      
+      // Wine (filled)
+      ctx.fillStyle = '#8b2942';
+      ctx.beginPath();
+      ctx.moveTo(32 * scale, 35 * scale);
+      ctx.quadraticCurveTo(32 * scale, 52 * scale, 50 * scale, 52 * scale);
+      ctx.quadraticCurveTo(68 * scale, 52 * scale, 68 * scale, 35 * scale);
+      ctx.lineTo(32 * scale, 35 * scale);
+      ctx.fill();
+      
+      // Glass rim highlight
+      ctx.strokeStyle = '#c9a55c';
+      ctx.lineWidth = 1.5 * scale;
+      ctx.beginPath();
+      ctx.moveTo(30 * scale, 25 * scale);
+      ctx.lineTo(70 * scale, 25 * scale);
+      ctx.stroke();
+    }
+    
+    function download(canvasId, filename) {
+      const canvas = document.getElementById(canvasId);
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+    
+    // Draw icons on load
+    drawIcon(document.getElementById('icon192'));
+    drawIcon(document.getElementById('icon512'));
+  </script>
+</body>
+</html>

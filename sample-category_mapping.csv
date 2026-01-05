@@ -1,0 +1,14 @@
+menu_id,categorias,nome_pt,nome_en,nome_fr,subtitulo_pt,subtitulo_en,subtitulo_fr,vinho_copo,ordem,visivel
+Aperitivo,Aperitivo,Aperitivos,Aperitifs,Apéritifs,Para começar,To start,Pour commencer,false,1,true
+GinVodka,"Gin,Vodka",Gin Tonic / Vodka Tonic,Gin Tonic / Vodka Tonic,Gin Tonic / Vodka Tonic,Clássicos & Premium,Classic & Premium,Classiques et Premium,false,2,true
+Espumante,Espumante,Espumantes,Sparkling Wines,Crémants,Espumantes Portugueses,Portuguese Sparkling,Pétillants Portugais,false,3,true
+Champagne,Champagne,Champagne,Champagne,Champagne,Les Grandes Maisons,Les Grandes Maisons,Les Grandes Maisons,false,4,true
+Rosé,Rosé,Vinhos Rosés,Rosé Wines,Vins Rosés,Seleção de Rosés,Rosé Selection,Sélection de Rosés,true,5,true
+Branco,Branco,Vinhos Brancos,White Wines,Vins Blancs,Seleção de Brancos,White Selection,Sélection de Blancs,true,6,true
+Tinto,Tinto,Vinhos Tintos,Red Wines,Vins Rouges,Seleção de Tintos,Red Selection,Sélection de Rouges,true,7,true
+CervejaSidra,"Cerveja,Sidra",Cervejas & Sidras,Beers & Ciders,Bières et Cidres,Produção Nacional,Portuguese Craft,Production Nationale,false,8,true
+Generoso,Generoso,Generosos,Fortified Wines,Vins de Dessert,"Porto, Madeira, Moscatel & mais","Port, Madeira, Moscatel & more","Porto, Madère, Moscatel et plus",false,9,true
+Rhum,Rhum,Rum & Tequila,Rum & Tequila,Rhum et Tequila,Das Índias às Américas,From the Indies to the Americas,Des Indes aux Amériques,false,10,true
+Aguardente,Aguardente,Aguardentes,Brandies,Eaux-de-Vie,"Brandies, Grappas, Cognac & Armagnac","Brandies, Grappas, Cognac & Armagnac","Brandies, Grappas, Cognac et Armagnac",false,11,true
+LicorWhisky,"Licor,Whisky",Licores & Whiskies,Liqueurs & Whiskies,Liqueurs et Whiskies,Tradição Portuguesa & Maltes do Mundo,Portuguese Tradition & World Malts,Tradition Portugaise et Malts du Monde,false,12,true
+BebidaCafetaria,"Bebida,Cafetaria",Águas & Cafetaria,Waters & Coffee,Eaux et Café,Bebidas & Infusões,Beverages & Infusions,Boissons et Infusions,false,13,true

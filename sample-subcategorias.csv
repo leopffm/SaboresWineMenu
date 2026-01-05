@@ -1,0 +1,25 @@
+categoria,subcategoria,nome_pt,nome_en,nome_fr,subtitulo_pt,subtitulo_en,subtitulo_fr,ordem
+Tinto,Douro,Douro,Douro Valley,Vallée du Douro,O coração vínico de Portugal,The heart of Portuguese wine,Le cœur viticole du Portugal,1
+Tinto,Alentejo,Alentejo,Alentejo,Alentejo,Vinhos encorpados do Sul,Full-bodied wines from the South,Vins corsés du Sud,2
+Tinto,Dão,Dão,Dão,Dão,Elegância granítica,Granitic elegance,Élégance granitique,3
+Tinto,Bairrada,Bairrada,Bairrada,Bairrada,Terra da Baga,Land of Baga,Terre de Baga,4
+Tinto,Lisboa,Lisboa,Lisbon,Lisbonne,,,5
+Tinto,Internacional,Internacional,International,International,,,99
+Branco,Minho,Minho (Vinho Verde),Minho (Vinho Verde),Minho (Vinho Verde),Frescura atlântica,Atlantic freshness,Fraîcheur atlantique,1
+Branco,Douro,Douro,Douro Valley,Vallée du Douro,Brancos de altitude,High-altitude whites,Blancs d'altitude,2
+Branco,Dão,Dão,Dão,Dão,Elegância mineral,Mineral elegance,Élégance minérale,3
+Branco,Alentejo,Alentejo,Alentejo,Alentejo,,,4
+Branco,Internacional,Internacional,International,International,,,99
+Rosé,Alentejo,Alentejo,Alentejo,Alentejo,,,1
+Rosé,Douro,Douro,Douro Valley,Vallée du Douro,,,2
+Generoso,Porto Tinto,Porto Tinto,Ruby Port,Porto Rouge,Vinhos jovens e frutados,Young and fruity wines,Vins jeunes et fruités,1
+Generoso,Porto Branco,Porto Branco,White Port,Porto Blanc,Frescos e aromáticos,Fresh and aromatic,Frais et aromatiques,2
+Generoso,Porto Vintage,Porto Vintage,Vintage Port,Porto Vintage,Anos excecionais,Exceptional years,Années exceptionnelles,3
+Generoso,Madeira,Madeira,Madeira,Madère,Tradição secular,Centuries of tradition,Des siècles de tradition,4
+Generoso,Moscatel de Setúbal,Moscatel de Setúbal,Setúbal Muscat,Muscat de Setúbal,Doçura peninsular,Peninsular sweetness,Douceur péninsulaire,5
+Bebida,Água,Água,Water,Eau,,,1
+Bebida,Refrigerante,Refrigerante,Soft Drinks,Boissons Gazeuses,,,2
+Bebida,Sumo,Sumo,Juice,Jus,,,3
+Cafetaria,Café,Café,Coffee,Café,,,4
+Cafetaria,Chá,Chá,Tea,Thé,,,5
+Cafetaria,Infusão,Infusão,Infusion,Infusion,,,6
