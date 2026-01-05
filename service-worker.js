@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wine-menu-v37';
+const CACHE_NAME = 'wine-menu-v38';
 const ASSETS_TO_CACHE = [
   './',                 // Changed from '/'
   'index.html',         // Changed from '/index.html'
