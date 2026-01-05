@@ -2,7 +2,7 @@
   "name": "Carta de Vinhos",
   "short_name": "Vinhos",
   "description": "Wine menu for restaurant",
-  "start_url": "/",
+  "start_url": "./",
   "display": "fullscreen",
   "orientation": "portrait",
   "background_color": "#1a1814",

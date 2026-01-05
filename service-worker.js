@@ -1,16 +1,17 @@
 const CACHE_NAME = 'wine-menu-v37';
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/logo.png',
-  '/texture.png',
-  '/bio_logo.png',
-  '/prodi_logo.png',
-  '/award_tripadvisor.png',
-  '/award_michelin.png',
-  '/award_winespectator.png',
-  '/award_finewine.png',
+  './',                 // Changed from '/'
+  'index.html',         // Changed from '/index.html'
+  'manifest.json',      // Changed from '/manifest.json'
+  'logo.png',           // Changed from '/logo.png'
+  'texture.png',        // ...and so on for all images
+  'bio_logo.png',
+  'prodi_logo.png',
+  'award_tripadvisor.png',
+  'award_michelin.png',
+  'award_winespectator.png',
+  'award_finewine.png',
+  // External fonts do NOT need changing
   'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap',
   'https://fonts.googleapis.com/css2?family=Spectral:wght@400;500;600;700&display=swap'
 ];
