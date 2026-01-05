@@ -1021,21 +1021,21 @@ const WineCard = ({ wine, language = 'pt' }) => {
           React.createElement(StickyBackButton, { onClick: handleBack, label: titles.menu[language] }),
           // Category header
           React.createElement('div', { style: { marginBottom: '2rem' } },
-            React.createElement('h1', { style: { fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '2.2rem', letterSpacing: '0.08em', fontWeight: 600 } }, currentCategory?.name[language]),
-            React.createElement('p', { style: { fontFamily: "'Cormorant Garamond', Georgia, serif", color: colors.goldLight, fontSize: '1.15rem', marginTop: '0.5rem', letterSpacing: '0.03em', fontWeight: 500 } }, currentCategory?.subtitle[language]),
-            currentCategory?.hasGlass && React.createElement('p', { style: { fontFamily: "'Cormorant Garamond', Georgia, serif", color: colors.gold, fontSize: '1rem', fontWeight: 600, marginTop: '1rem', letterSpacing: '0.03em', fontStyle: 'italic' } }, titles.wineByGlass[language])
+            React.createElement('h1', { style: { fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '2.35rem', letterSpacing: '0.08em', fontWeight: 600 } }, currentCategory?.name[language]),
+            React.createElement('p', { style: { fontFamily: "'Cormorant Garamond', Georgia, serif", color: colors.goldLight, fontSize: '1.25rem', marginTop: '0.5rem', letterSpacing: '0.03em', fontWeight: 500 } }, currentCategory?.subtitle[language]),
+            currentCategory?.hasGlass && React.createElement('p', { style: { fontFamily: "'Cormorant Garamond', Georgia, serif", color: colors.gold, fontSize: '1.1rem', fontWeight: 600, marginTop: '1rem', letterSpacing: '0.03em', fontStyle: 'italic' } }, titles.wineByGlass[language])
           ),
           // Region filter buttons (only show if more than one region)
           regions.length > 1 && React.createElement('div', { style: { marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '1.25rem' } },
             React.createElement('button', {
               onClick: () => setSelectedRegion(null),
-              style: { background: 'none', border: 'none', fontSize: '1.1rem', fontWeight: 600, letterSpacing: '0.03em', cursor: 'pointer', paddingBottom: '0.25rem', borderBottom: !selectedRegion ? `2px solid ${colors.gold}` : '2px solid transparent', color: !selectedRegion ? colors.gold : colors.textLight, fontFamily: "'Cormorant Garamond', Georgia, serif", transition: 'all 0.3s' }
+              style: { background: 'none', border: 'none', fontSize: '1.2rem', fontWeight: 600, letterSpacing: '0.03em', cursor: 'pointer', paddingBottom: '0.25rem', borderBottom: !selectedRegion ? `2px solid ${colors.gold}` : '2px solid transparent', color: !selectedRegion ? colors.gold : colors.textLight, fontFamily: "'Cormorant Garamond', Georgia, serif", transition: 'all 0.3s' }
             }, titles.all[language]),
             regions.map(region =>
               React.createElement('button', {
                 key: region,
                 onClick: () => setSelectedRegion(region),
-                style: { background: 'none', border: 'none', fontSize: '1.1rem', fontWeight: 600, letterSpacing: '0.03em', cursor: 'pointer', paddingBottom: '0.25rem', borderBottom: selectedRegion === region ? `2px solid ${colors.gold}` : '2px solid transparent', color: selectedRegion === region ? colors.gold : colors.textLight, fontFamily: "'Cormorant Garamond', Georgia, serif", transition: 'all 0.3s' }
+                style: { background: 'none', border: 'none', fontSize: '1.2rem', fontWeight: 600, letterSpacing: '0.03em', cursor: 'pointer', paddingBottom: '0.25rem', borderBottom: selectedRegion === region ? `2px solid ${colors.gold}` : '2px solid transparent', color: selectedRegion === region ? colors.gold : colors.textLight, fontFamily: "'Cormorant Garamond', Georgia, serif", transition: 'all 0.3s' }
               }, getRegionName(region))
             )
           ),
