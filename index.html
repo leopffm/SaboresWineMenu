@@ -656,10 +656,10 @@ const WineCard = ({ wine, language = 'pt' }) => {
                }, titles.exclusive[language] || titles.exclusive.pt)
             ),
 
-            // Castas/Grapes (NOW BEFORE Producer)
-            wine.castas && React.createElement('p', { style: { fontFamily: "'Cormorant Garamond', Georgia, serif", color: colors.textMuted, fontSize: '1.05rem', marginTop: '0.35rem', fontStyle: 'italic', fontWeight: 600 } }, wine.castas),
-            // Producer (NOW AFTER Castas)
-            wine.produtor && React.createElement('p', { style: { fontFamily: "'Cormorant Garamond', Georgia, serif", color: colors.textLight, fontSize: '1.1rem', marginTop: '0.35rem', fontWeight: 600 } }, wine.produtor),
+            // Castas/Grapes (NOW BEFORE Producer) - MORE VISIBLE
+            wine.castas && React.createElement('p', { style: { fontFamily: "'Cormorant Garamond', Georgia, serif", color: colors.textLight, fontSize: '1.15rem', marginTop: '0.35rem', fontWeight: 600 } }, wine.castas),
+            // Producer (NOW AFTER Castas) - LESS VISIBLE
+            wine.produtor && React.createElement('p', { style: { fontFamily: "'Cormorant Garamond', Georgia, serif", color: colors.textMuted, fontSize: '1.05rem', marginTop: '0.35rem', fontStyle: 'italic', fontWeight: 500 } }, wine.produtor),
             // Notes/Ratings
             wine.notas && React.createElement('p', { style: { color: colors.gold, fontSize: '1.05rem', fontWeight: 600, marginTop: '0.4rem', letterSpacing: '0.02em' } }, wine.notas)
           ),
