@@ -974,13 +974,49 @@ const WineCard = ({ wine, language = 'pt', region }) => {
             groups[colorGroup].push(wine);
           });
 
-          // Sort groups in a specific order: brancos, roses, tintos, then any specific types
+          // Helper to get region order from main wine category configs
+          const getRegionOrder = (region) => {
+            if (!region) return 999;
+            // Look in Branco, Tinto, Rosé, Espumante, Champagne configs for the region order
+            for (const cat of ['Branco', 'Tinto', 'Rosé', 'Espumante', 'Champagne']) {
+              const catConfig = subcategoriasConfig[cat];
+              if (catConfig && catConfig[region]) {
+                return catConfig[region].ordem ?? 999;
+              }
+            }
+            return 999;
+          };
+
+          // Sort wines within each group by region order
+          Object.keys(groups).forEach(colorGroup => {
+            groups[colorGroup].sort((a, b) => {
+              const regionA = parseVinhoCopoSubcategoria(a.subcategoria).region;
+              const regionB = parseVinhoCopoSubcategoria(b.subcategoria).region;
+              const orderA = getRegionOrder(regionA);
+              const orderB = getRegionOrder(regionB);
+              // If same order, sort alphabetically by region
+              if (orderA === orderB) return regionA.localeCompare(regionB);
+              return orderA - orderB;
+            });
+          });
+
+          // Helper to find group order in subcategoriasConfig for VinhoCopo
+          const findGroupOrder = (colorKey) => {
+            const config = subcategoriasConfig['VinhoCopo'];
+            if (!config) return 999;
+            // Try to find matching key (case-insensitive)
+            const key = Object.keys(config).find(k =>
+              k.toLowerCase() === colorKey.toLowerCase()
+            );
+            return key ? (config[key].ordem ?? 999) : 999;
+          };
+
+          // Sort groups based on spreadsheet configuration
           const sortedGroups = Object.keys(groups).sort((a, b) => {
-            const order = { brancos: 1, roses: 2, tintos: 3 };
-            const orderA = order[a] || 999;
-            const orderB = order[b] || 999;
-            if (orderA !== orderB) return orderA - orderB;
-            return a.localeCompare(b);
+            const orderA = findGroupOrder(a);
+            const orderB = findGroupOrder(b);
+            if (orderA === orderB) return a.localeCompare(b);
+            return orderA - orderB;
           });
 
           return sortedGroups.map(group => ({ region: group, wines: groups[group] }));
