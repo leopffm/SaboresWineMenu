@@ -362,6 +362,59 @@
       return '';
     };
 
+    // ============================================
+    // VINHOCOPO SPECIAL PARSING
+    // ============================================
+
+    // Parse VinhoCopo subcategoria into type and region
+    // Example: "Brancos a Copo - Lisboa" -> { type: "Brancos a Copo", region: "Lisboa" }
+    const parseVinhoCopoSubcategoria = (subcategoria) => {
+      if (!subcategoria) return { type: '', region: '' };
+      const parts = subcategoria.split(' - ');
+      return {
+        type: parts[0]?.trim() || subcategoria,
+        region: parts[1]?.trim() || ''
+      };
+    };
+
+    // Determine VinhoCopo filter category from wine type
+    const getVinhoCopoFilterCategory = (type) => {
+      if (!type) return 'outros';
+      if (type.includes('Espumante')) return 'espumantes';
+      if (type.includes('Champagne')) return 'champagnes';
+      if (type.includes('Meias Garrafas')) return 'meias-garrafas';
+      if (type.endsWith('a Copo')) return 'vinhos-copo';
+      return 'outros';
+    };
+
+    // Extract wine color from type for grouping
+    const getVinhoCopoColor = (type) => {
+      if (!type) return 'outros';
+      if (type.includes('Brancos')) return 'brancos';
+      if (type.includes('Rosés') || type.includes('Rosé')) return 'roses';
+      if (type.includes('Tintos')) return 'tintos';
+      // For Espumante/Champagne a Copo, use the type itself as the group
+      if (type.includes('Espumante') || type.includes('Champagne')) return type;
+      return 'outros';
+    };
+
+    // VinhoCopo filter options (in order)
+    const vinhoCopoFilters = [
+      { id: 'todos', name: { pt: 'Todos', en: 'All', fr: 'Tous' } },
+      { id: 'espumantes', name: { pt: 'Espumantes', en: 'Sparkling', fr: 'Mousseux' } },
+      { id: 'champagnes', name: { pt: 'Champagnes', en: 'Champagnes', fr: 'Champagnes' } },
+      { id: 'vinhos-copo', name: { pt: 'Vinhos a Copo', en: 'Wines by Glass', fr: 'Vins au Verre' } },
+      { id: 'meias-garrafas', name: { pt: '½ Garrafas', en: '½ Bottles', fr: '½ Bouteilles' } }
+    ];
+
+    // Color group display names
+    const vinhoCopoColorNames = {
+      brancos: { pt: 'Brancos', en: 'Whites', fr: 'Blancs' },
+      roses: { pt: 'Rosés', en: 'Rosés', fr: 'Rosés' },
+      tintos: { pt: 'Tintos', en: 'Reds', fr: 'Rouges' },
+      outros: { pt: 'Outros', en: 'Others', fr: 'Autres' }
+    };
+
     // Main title translations
     const titles = {
       mainTitle: { pt: 'CARTA DE VINHOS', en: 'WINE LIST', fr: 'CARTE DES VINS' },
@@ -584,7 +637,7 @@
       );
     };
 
-const WineCard = ({ wine, language = 'pt' }) => {
+const WineCard = ({ wine, language = 'pt', region }) => {
       // Debug
       if (wine.exclusivo) {
         console.log('Rendering exclusive wine:', wine.nome, 'language:', language);
@@ -663,8 +716,18 @@ const WineCard = ({ wine, language = 'pt' }) => {
             // Notes/Ratings
             wine.notas && React.createElement('p', { style: { color: colors.gold, fontSize: '1.05rem', fontWeight: 600, marginTop: '0.4rem', letterSpacing: '0.02em' } }, wine.notas)
           ),
-          // Prices
+          // Prices (with optional region for VinhoCopo)
           React.createElement('div', { style: { textAlign: 'right', flexShrink: 0 } },
+            // Region display for VinhoCopo wines (subtle, above prices)
+            region && React.createElement('div', {
+              style: {
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                color: colors.textMuted,
+                fontSize: '0.95rem',
+                fontStyle: 'italic',
+                marginBottom: '0.4rem'
+              }
+            }, region),
             React.createElement('div', { style: { display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', gap: '0.5rem' } },
               React.createElement('span', { style: { fontFamily: "'Spectral', Georgia, serif", color: colors.textLight, fontSize: '1rem', fontWeight: 400 } }, wine.vol1),
               React.createElement('span', { style: { fontFamily: "'Spectral', Georgia, serif", color: colors.text, fontSize: '1.2rem', fontWeight: 500, minWidth: '4.5rem', textAlign: 'right' } }, formatPrice(wine.preco1))
@@ -753,6 +816,7 @@ const WineCard = ({ wine, language = 'pt' }) => {
       const [language, setLanguage] = useState('pt');
       const [selectedCategory, setSelectedCategory] = useState(null);
       const [selectedRegion, setSelectedRegion] = useState(null);
+      const [selectedVinhoCopoFilter, setSelectedVinhoCopoFilter] = useState('todos');
       const [isTransitioning, setIsTransitioning] = useState(false);
 
       useEffect(() => {
@@ -876,31 +940,67 @@ const WineCard = ({ wine, language = 'pt' }) => {
         if (selectedCategory && currentCategory) {
           wines = wines.filter(w => currentCategory.dataCategories.includes(w.categoria));
         }
-        if (selectedRegion) {
-          wines = wines.filter(w => w.subcategoria === selectedRegion);
+
+        // Special filtering for VinhoCopo category
+        if (selectedCategory === 'VinhoCopo') {
+          if (selectedVinhoCopoFilter && selectedVinhoCopoFilter !== 'todos') {
+            wines = wines.filter(w => {
+              const { type } = parseVinhoCopoSubcategoria(w.subcategoria);
+              return getVinhoCopoFilterCategory(type) === selectedVinhoCopoFilter;
+            });
+          }
+        } else {
+          // Regular region filtering for other categories
+          if (selectedRegion) {
+            wines = wines.filter(w => w.subcategoria === selectedRegion);
+          }
         }
+
         return wines;
-      }, [wineData, selectedCategory, selectedRegion, currentCategory]);
+      }, [wineData, selectedCategory, selectedRegion, selectedVinhoCopoFilter, currentCategory]);
 
       // Group wines by subcategory for sticky headers (with custom ordering)
       const winesByRegion = useMemo(() => {
         if (selectedRegion) return null; // Don't group if a specific region is selected
 
         const groups = {};
-        filteredWines.forEach(wine => {
-          const region = wine.subcategoria || 'Outros';
-          if (!groups[region]) groups[region] = [];
-          groups[region].push(wine);
-        });
 
-        // Get all dataCategories for ordering (merges from all source categories)
-        const dataCategories = currentCategory?.dataCategories || [];
+        // Special grouping for VinhoCopo: group by color instead of subcategory
+        if (selectedCategory === 'VinhoCopo') {
+          filteredWines.forEach(wine => {
+            const { type } = parseVinhoCopoSubcategoria(wine.subcategoria);
+            const colorGroup = getVinhoCopoColor(type);
+            if (!groups[colorGroup]) groups[colorGroup] = [];
+            groups[colorGroup].push(wine);
+          });
 
-        // Sort regions based on config, then alphabetically
-        const sortedRegions = sortSubcategories(Object.keys(groups), dataCategories, subcategoriasConfig);
+          // Sort groups in a specific order: brancos, roses, tintos, then any specific types
+          const sortedGroups = Object.keys(groups).sort((a, b) => {
+            const order = { brancos: 1, roses: 2, tintos: 3 };
+            const orderA = order[a] || 999;
+            const orderB = order[b] || 999;
+            if (orderA !== orderB) return orderA - orderB;
+            return a.localeCompare(b);
+          });
 
-        return sortedRegions.map(region => ({ region, wines: groups[region] }));
-      }, [filteredWines, selectedRegion, currentCategory, subcategoriasConfig]);
+          return sortedGroups.map(group => ({ region: group, wines: groups[group] }));
+        } else {
+          // Regular grouping by subcategory for other categories
+          filteredWines.forEach(wine => {
+            const region = wine.subcategoria || 'Outros';
+            if (!groups[region]) groups[region] = [];
+            groups[region].push(wine);
+          });
+
+          // Get all dataCategories for ordering (merges from all source categories)
+          const dataCategories = currentCategory?.dataCategories || [];
+
+          // Sort regions based on config, then alphabetically
+          const sortedRegions = sortSubcategories(Object.keys(groups), dataCategories, subcategoriasConfig);
+
+          return sortedRegions.map(region => ({ region, wines: groups[region] }));
+        }
+      }, [filteredWines, selectedRegion, selectedCategory, currentCategory, subcategoriasConfig]);
 
       // Get regions for current category (from all data categories in the group) - with custom ordering
       const regions = useMemo(() => {
@@ -917,18 +1017,35 @@ const WineCard = ({ wine, language = 'pt' }) => {
       // Helper to get translated region name
       const getRegionName = (region) => {
         if (!currentCategory) return region;
+
+        // Special handling for VinhoCopo color groups
+        if (selectedCategory === 'VinhoCopo') {
+          // Check if it's a color group
+          if (vinhoCopoColorNames[region]) {
+            return vinhoCopoColorNames[region][language];
+          }
+          // Otherwise it's a specific type (like "Espumante a Copo"), return as is
+          return region;
+        }
+
         return getSubcategoryName(region, currentCategory.dataCategories, subcategoriasConfig, language);
       };
 
       // NEW: Helper to get region subtitle
       const getRegionSubtitle = (region) => {
         if (!currentCategory) return '';
+
+        // VinhoCopo groups don't have subtitles
+        if (selectedCategory === 'VinhoCopo') {
+          return '';
+        }
+
         return getSubcategorySubtitle(region, currentCategory.dataCategories, subcategoriasConfig, language);
       };
 
       const handleEnter = () => { setIsTransitioning(true); setTimeout(() => setShowCover(false), 500); };
-      const handleCategorySelect = (catId) => { setSelectedCategory(catId); setSelectedRegion(null); };
-      const handleBack = () => { setSelectedCategory(null); setSelectedRegion(null); };
+      const handleCategorySelect = (catId) => { setSelectedCategory(catId); setSelectedRegion(null); setSelectedVinhoCopoFilter('todos'); };
+      const handleBack = () => { setSelectedCategory(null); setSelectedRegion(null); setSelectedVinhoCopoFilter('todos'); };
       const handleBackToCover = () => { setShowCover(true); setIsTransitioning(false); };
 
       if (loading) return React.createElement(LoadingScreen);
@@ -1025,18 +1142,44 @@ const WineCard = ({ wine, language = 'pt' }) => {
             React.createElement('p', { style: { fontFamily: "'Cormorant Garamond', Georgia, serif", color: colors.goldLight, fontSize: '1.25rem', marginTop: '0.5rem', letterSpacing: '0.03em', fontWeight: 500 } }, currentCategory?.subtitle[language]),
             currentCategory?.hasGlass && React.createElement('p', { style: { fontFamily: "'Cormorant Garamond', Georgia, serif", color: colors.gold, fontSize: '1.1rem', fontWeight: 600, marginTop: '1rem', letterSpacing: '0.03em', fontStyle: 'italic' } }, titles.wineByGlass[language])
           ),
-          // Region filter buttons (only show if more than one region and not VinhoCopo category)
-          regions.length > 1 && selectedCategory !== 'VinhoCopo' && React.createElement('div', { style: { marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '1.25rem' } },
-            React.createElement('button', {
-              onClick: () => setSelectedRegion(null),
-              style: { background: 'none', border: 'none', fontSize: '1.2rem', fontWeight: 600, letterSpacing: '0.03em', cursor: 'pointer', paddingBottom: '0.25rem', borderBottom: !selectedRegion ? `2px solid ${colors.gold}` : '2px solid transparent', color: !selectedRegion ? colors.gold : colors.textLight, fontFamily: "'Cormorant Garamond', Georgia, serif", transition: 'all 0.3s' }
-            }, titles.all[language]),
-            regions.map(region =>
+          // Filter buttons: VinhoCopo filters for VinhoCopo category, region filters for others
+          selectedCategory === 'VinhoCopo' ? (
+            // VinhoCopo filter buttons
+            React.createElement('div', { style: { marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '1.25rem' } },
+              vinhoCopoFilters.map(filter =>
+                React.createElement('button', {
+                  key: filter.id,
+                  onClick: () => setSelectedVinhoCopoFilter(filter.id),
+                  style: {
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '1.2rem',
+                    fontWeight: 600,
+                    letterSpacing: '0.03em',
+                    cursor: 'pointer',
+                    paddingBottom: '0.25rem',
+                    borderBottom: selectedVinhoCopoFilter === filter.id ? `2px solid ${colors.gold}` : '2px solid transparent',
+                    color: selectedVinhoCopoFilter === filter.id ? colors.gold : colors.textLight,
+                    fontFamily: "'Cormorant Garamond', Georgia, serif",
+                    transition: 'all 0.3s'
+                  }
+                }, filter.name[language])
+              )
+            )
+          ) : (
+            // Region filter buttons (only show if more than one region)
+            regions.length > 1 && React.createElement('div', { style: { marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '1.25rem' } },
               React.createElement('button', {
-                key: region,
-                onClick: () => setSelectedRegion(region),
-                style: { background: 'none', border: 'none', fontSize: '1.2rem', fontWeight: 600, letterSpacing: '0.03em', cursor: 'pointer', paddingBottom: '0.25rem', borderBottom: selectedRegion === region ? `2px solid ${colors.gold}` : '2px solid transparent', color: selectedRegion === region ? colors.gold : colors.textLight, fontFamily: "'Cormorant Garamond', Georgia, serif", transition: 'all 0.3s' }
-              }, getRegionName(region))
+                onClick: () => setSelectedRegion(null),
+                style: { background: 'none', border: 'none', fontSize: '1.2rem', fontWeight: 600, letterSpacing: '0.03em', cursor: 'pointer', paddingBottom: '0.25rem', borderBottom: !selectedRegion ? `2px solid ${colors.gold}` : '2px solid transparent', color: !selectedRegion ? colors.gold : colors.textLight, fontFamily: "'Cormorant Garamond', Georgia, serif", transition: 'all 0.3s' }
+              }, titles.all[language]),
+              regions.map(region =>
+                React.createElement('button', {
+                  key: region,
+                  onClick: () => setSelectedRegion(region),
+                  style: { background: 'none', border: 'none', fontSize: '1.2rem', fontWeight: 600, letterSpacing: '0.03em', cursor: 'pointer', paddingBottom: '0.25rem', borderBottom: selectedRegion === region ? `2px solid ${colors.gold}` : '2px solid transparent', color: selectedRegion === region ? colors.gold : colors.textLight, fontFamily: "'Cormorant Garamond', Georgia, serif", transition: 'all 0.3s' }
+                }, getRegionName(region))
+              )
             )
           ),
           // Wine list with sticky headers when no specific region is selected
@@ -1050,11 +1193,16 @@ const WineCard = ({ wine, language = 'pt' }) => {
                   displayName: getRegionName(selectedRegion),
                   subtitle: getRegionSubtitle(selectedRegion)
               }),
-              filteredWines.map((wine, index) =>
-                React.createElement('div', { key: wine.id, style: { animation: `fadeInUp 0.5s ease-out ${Math.min(index, 15) * 40}ms forwards`, opacity: 0 } },
-                  React.createElement(WineCard, { wine: wine, language: language })
-                )
-              )
+              filteredWines.map((wine, index) => {
+                // Extract region for VinhoCopo wines
+                const wineRegion = selectedCategory === 'VinhoCopo'
+                  ? parseVinhoCopoSubcategoria(wine.subcategoria).region
+                  : null;
+
+                return React.createElement('div', { key: wine.id, style: { animation: `fadeInUp 0.5s ease-out ${Math.min(index, 15) * 40}ms forwards`, opacity: 0 } },
+                  React.createElement(WineCard, { wine: wine, language: language, region: wineRegion })
+                );
+              })
             )
           ) : (
             // Grouped list with sticky region headers
@@ -1067,11 +1215,16 @@ const WineCard = ({ wine, language = 'pt' }) => {
                       displayName: getRegionName(group.region),
                       subtitle: getRegionSubtitle(group.region)
                   }),
-                  group.wines.map((wine, index) =>
-                    React.createElement('div', { key: wine.id, style: { animation: `fadeInUp 0.4s ease-out ${Math.min(index, 10) * 30}ms forwards`, opacity: 0 } },
-                      React.createElement(WineCard, { wine: wine, language: language })
-                    )
-                  )
+                  group.wines.map((wine, index) => {
+                    // Extract region for VinhoCopo wines
+                    const wineRegion = selectedCategory === 'VinhoCopo'
+                      ? parseVinhoCopoSubcategoria(wine.subcategoria).region
+                      : null;
+
+                    return React.createElement('div', { key: wine.id, style: { animation: `fadeInUp 0.4s ease-out ${Math.min(index, 10) * 30}ms forwards`, opacity: 0 } },
+                      React.createElement(WineCard, { wine: wine, language: language, region: wineRegion })
+                    );
+                  })
                 )
               )
             )
