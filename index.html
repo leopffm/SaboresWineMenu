@@ -383,9 +383,27 @@
       if (type.includes('Champagne')) return 'champagne';
       if (type.includes('Espumante')) return 'espumante';
       if (type.includes('Meias Garrafas')) return 'meias-garrafas';
-      if (type.endsWith('a Copo')) return 'vinho-copo';
+      if (type.includes('a Copo')) return 'vinho-copo';
       return 'outros';
     };
+
+    // Extract color key from type string
+    // "Brancos a Copo" / "Meias Garrafas Brancos" → 'brancos', etc.
+    const getVinhoCopoColor = (type) => {
+      if (!type) return null;
+      const t = type.toLowerCase();
+      if (t.includes('branc')) return 'brancos';
+      if (t.includes('rosé') || t.includes('rose')) return 'roses';
+      if (t.includes('tinto')) return 'tintos';
+      return null; // Champagne / Espumante have no color subgroup
+    };
+
+    // Color display names and ordering
+    const vinhoCopoColors = [
+      { id: 'brancos', name: { pt: 'Brancos', en: 'Whites', fr: 'Blancs' } },
+      { id: 'roses',   name: { pt: 'Rosés',   en: 'Rosés',  fr: 'Rosés'  } },
+      { id: 'tintos',  name: { pt: 'Tintos',  en: 'Reds',   fr: 'Rouges' } },
+    ];
 
     // The 4 fixed sections for VinhoCopo view
     const vinhoCopoSections = [
@@ -678,21 +696,17 @@ const WineCard = ({ wine, language = 'pt', regionBadge = null }) => {
                 style: { height: '1.3rem', width: 'auto', verticalAlign: 'middle' }
               }),
 
-              // Inline region badge (used in VinhoCopo sections)
+              // Inline region label (used in VinhoCopo sections)
               regionBadge && React.createElement('span', {
                 style: {
                   fontFamily: "'Cormorant Garamond', Georgia, serif",
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
+                  fontSize: '1rem',
+                  fontWeight: 500,
+                  fontStyle: 'italic',
                   color: colors.textMuted,
-                  border: `1px solid ${colors.textMuted}40`,
-                  padding: '0.15rem 0.45rem',
-                  borderRadius: '2px',
                   whiteSpace: 'nowrap'
                 }
-              }, regionBadge)
+              }, `· ${regionBadge}`)
             ),
 
             // Exclusive Tag - MOVED HERE (Below Name/Year)
@@ -1112,36 +1126,50 @@ const WineCard = ({ wine, language = 'pt', regionBadge = null }) => {
               return 999;
             };
 
-            // Build section → sorted wines map
+            // Build section → color → sorted wines map
             const sectionWines = {};
-            vinhoCopoSections.forEach(s => { sectionWines[s.id] = []; });
+            vinhoCopoSections.forEach(s => { sectionWines[s.id] = {}; });
             filteredWines.forEach(wine => {
               const { type, region } = parseVinhoCopoSubcategoria(wine.subcategoria);
               const sectionId = getVinhoCopoSection(type);
+              const colorId = getVinhoCopoColor(type) || 'none';
               if (sectionWines[sectionId]) {
-                sectionWines[sectionId].push({ wine, region });
+                if (!sectionWines[sectionId][colorId]) sectionWines[sectionId][colorId] = [];
+                sectionWines[sectionId][colorId].push({ wine, region });
               }
             });
-            // Sort each section's wines by region order
+            // Sort wines within each color group by region order
             Object.keys(sectionWines).forEach(sId => {
-              sectionWines[sId].sort((a, b) => {
-                const diff = getRegionOrder(a.region) - getRegionOrder(b.region);
-                return diff !== 0 ? diff : a.region.localeCompare(b.region);
+              Object.keys(sectionWines[sId]).forEach(colorId => {
+                sectionWines[sId][colorId].sort((a, b) => {
+                  const diff = getRegionOrder(a.region) - getRegionOrder(b.region);
+                  return diff !== 0 ? diff : a.region.localeCompare(b.region);
+                });
               });
             });
 
+            // Check if a section has any wines
+            const sectionHasWines = (sId) => Object.values(sectionWines[sId]).some(arr => arr.length > 0);
+
+            // Sections that use color subgroups
+            const sectionsWithColors = new Set(['vinho-copo', 'meias-garrafas']);
+
             return React.createElement('div', {},
               vinhoCopoSections
-                .filter(section => sectionWines[section.id].length > 0)
-                .map((section, sIdx) =>
-                  React.createElement('div', { key: section.id, style: { marginTop: sIdx === 0 ? 0 : '2.5rem' } },
+                .filter(section => sectionHasWines(section.id))
+                .map((section, sIdx) => {
+                  const hasColors = sectionsWithColors.has(section.id);
+                  // Flat list of entries for sections without color subgroups
+                  const flatEntries = hasColors ? [] : (sectionWines[section.id]['none'] || []);
+                  // Color groups present in this section (in defined order)
+                  const activeColors = hasColors
+                    ? vinhoCopoColors.filter(c => (sectionWines[section.id][c.id] || []).length > 0)
+                    : [];
+
+                  return React.createElement('div', { key: section.id, style: { marginTop: sIdx === 0 ? 0 : '2.5rem' } },
                     // Section title
                     React.createElement('div', {
-                      style: {
-                        borderBottom: `1px solid ${colors.gold}35`,
-                        paddingBottom: '0.5rem',
-                        marginBottom: '0.25rem'
-                      }
+                      style: { borderBottom: `1px solid ${colors.gold}35`, paddingBottom: '0.5rem', marginBottom: '0.25rem' }
                     },
                       React.createElement('h2', {
                         style: {
@@ -1154,14 +1182,39 @@ const WineCard = ({ wine, language = 'pt', regionBadge = null }) => {
                         }
                       }, section.name[language])
                     ),
-                    // Wines with inline region badge
-                    sectionWines[section.id].map(({ wine, region }, index) =>
+
+                    // No color subgroups (Champagne, Espumante)
+                    !hasColors && flatEntries.map(({ wine, region }, index) =>
                       React.createElement('div', { key: wine.id, style: { animation: `fadeInUp 0.4s ease-out ${Math.min(index, 10) * 30}ms forwards`, opacity: 0 } },
                         React.createElement(WineCard, { wine: wine, language: language, regionBadge: region || null })
                       )
+                    ),
+
+                    // Color subgroups (Vinho a Copo, Meias Garrafas)
+                    hasColors && activeColors.map((color, cIdx) =>
+                      React.createElement('div', { key: color.id, style: { marginTop: cIdx === 0 ? '0.5rem' : '1.5rem' } },
+                        // Color sub-header
+                        React.createElement('p', {
+                          style: {
+                            fontFamily: "'Cormorant Garamond', Georgia, serif",
+                            fontSize: '1rem',
+                            color: colors.textMuted,
+                            fontWeight: 600,
+                            letterSpacing: '0.12em',
+                            textTransform: 'uppercase',
+                            marginBottom: '0.25rem'
+                          }
+                        }, color.name[language]),
+                        // Wines in this color group
+                        (sectionWines[section.id][color.id] || []).map(({ wine, region }, index) =>
+                          React.createElement('div', { key: wine.id, style: { animation: `fadeInUp 0.4s ease-out ${Math.min(index, 10) * 30}ms forwards`, opacity: 0 } },
+                            React.createElement(WineCard, { wine: wine, language: language, regionBadge: region || null })
+                          )
+                        )
+                      )
                     )
-                  )
-                )
+                  );
+                })
             );
           })() : (
             // Standard view: grouped list with sticky region headers, or flat list for selected region
