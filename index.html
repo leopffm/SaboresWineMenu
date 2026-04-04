@@ -362,6 +362,51 @@
       return '';
     };
 
+    // ============================================
+    // VINHOCOPO SPECIAL PARSING
+    // ============================================
+
+    // Parse VinhoCopo subcategoria into type and region
+    // Example: "Brancos a Copo - Lisboa" -> { type: "Brancos a Copo", region: "Lisboa" }
+    const parseVinhoCopoSubcategoria = (subcategoria) => {
+      if (!subcategoria) return { type: '', region: '' };
+      const parts = subcategoria.split(' - ');
+      return {
+        type: parts[0]?.trim() || subcategoria,
+        region: parts[1]?.trim() || ''
+      };
+    };
+
+    // Map a wine type string to one of the 4 section IDs
+    const getVinhoCopoSection = (type) => {
+      if (!type) return 'outros';
+      if (type.includes('Champagne')) return 'champagne';
+      if (type.includes('Espumante')) return 'espumante';
+      if (type.includes('Meias Garrafas')) return 'meias-garrafas';
+      if (type.endsWith('a Copo')) return 'vinho-copo';
+      return 'outros';
+    };
+
+    // The 4 fixed sections for VinhoCopo view
+    const vinhoCopoSections = [
+      {
+        id: 'champagne',
+        name: { pt: 'Champagne a Copo', en: 'Champagne by the Glass', fr: 'Champagne au Verre' }
+      },
+      {
+        id: 'espumante',
+        name: { pt: 'Espumante a Copo', en: 'Sparkling by the Glass', fr: 'Crémant au Verre' }
+      },
+      {
+        id: 'vinho-copo',
+        name: { pt: 'Vinho a Copo', en: 'Wine by the Glass', fr: 'Vin au Verre' }
+      },
+      {
+        id: 'meias-garrafas',
+        name: { pt: 'Meias Garrafas', en: 'Half Bottles', fr: 'Demi-Bouteilles' }
+      }
+    ];
+
     // Main title translations
     const titles = {
       mainTitle: { pt: 'CARTA DE VINHOS', en: 'WINE LIST', fr: 'CARTE DES VINS' },
@@ -584,7 +629,7 @@
       );
     };
 
-const WineCard = ({ wine, language = 'pt' }) => {
+const WineCard = ({ wine, language = 'pt', regionBadge = null }) => {
       // Debug
       if (wine.exclusivo) {
         console.log('Rendering exclusive wine:', wine.nome, 'language:', language);
@@ -631,7 +676,23 @@ const WineCard = ({ wine, language = 'pt' }) => {
                 src: 'prodi_logo.png',
                 alt: 'Prodi',
                 style: { height: '1.3rem', width: 'auto', verticalAlign: 'middle' }
-              })
+              }),
+
+              // Inline region badge (used in VinhoCopo sections)
+              regionBadge && React.createElement('span', {
+                style: {
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: colors.textMuted,
+                  border: `1px solid ${colors.textMuted}40`,
+                  padding: '0.15rem 0.45rem',
+                  borderRadius: '2px',
+                  whiteSpace: 'nowrap'
+                }
+              }, regionBadge)
             ),
 
             // Exclusive Tag - MOVED HERE (Below Name/Year)
@@ -1039,37 +1100,97 @@ const WineCard = ({ wine, language = 'pt' }) => {
               }, getRegionName(region))
             )
           ),
-          // Wine list with sticky headers when no specific region is selected
-          selectedRegion ? (
-            // Simple flat list when a specific region is selected
-            React.createElement('div', {},
-              // Use the SAME StickyRegionHeader component used in the grouped list!
-              // This ensures consistency (left alignment, sticky behavior, styles)
-              React.createElement(StickyRegionHeader, {
+          // VinhoCopo: 4-section layout with inline region badges
+          selectedCategory === 'VinhoCopo' ? (() => {
+            // Helper: get region sort order from subcategoriasConfig
+            const getRegionOrder = (region) => {
+              if (!region) return 999;
+              for (const cat of ['Branco', 'Tinto', 'Rosé', 'Espumante', 'Champagne']) {
+                const catConfig = subcategoriasConfig[cat];
+                if (catConfig && catConfig[region]) return catConfig[region].ordem ?? 999;
+              }
+              return 999;
+            };
+
+            // Build section → sorted wines map
+            const sectionWines = {};
+            vinhoCopoSections.forEach(s => { sectionWines[s.id] = []; });
+            filteredWines.forEach(wine => {
+              const { type, region } = parseVinhoCopoSubcategoria(wine.subcategoria);
+              const sectionId = getVinhoCopoSection(type);
+              if (sectionWines[sectionId]) {
+                sectionWines[sectionId].push({ wine, region });
+              }
+            });
+            // Sort each section's wines by region order
+            Object.keys(sectionWines).forEach(sId => {
+              sectionWines[sId].sort((a, b) => {
+                const diff = getRegionOrder(a.region) - getRegionOrder(b.region);
+                return diff !== 0 ? diff : a.region.localeCompare(b.region);
+              });
+            });
+
+            return React.createElement('div', {},
+              vinhoCopoSections
+                .filter(section => sectionWines[section.id].length > 0)
+                .map((section, sIdx) =>
+                  React.createElement('div', { key: section.id, style: { marginTop: sIdx === 0 ? 0 : '2.5rem' } },
+                    // Section title
+                    React.createElement('div', {
+                      style: {
+                        borderBottom: `1px solid ${colors.gold}35`,
+                        paddingBottom: '0.5rem',
+                        marginBottom: '0.25rem'
+                      }
+                    },
+                      React.createElement('h2', {
+                        style: {
+                          fontFamily: "'Cormorant Garamond', Georgia, serif",
+                          fontSize: '1.2rem',
+                          color: colors.gold,
+                          fontWeight: 600,
+                          letterSpacing: '0.1em',
+                          textTransform: 'uppercase'
+                        }
+                      }, section.name[language])
+                    ),
+                    // Wines with inline region badge
+                    sectionWines[section.id].map(({ wine, region }, index) =>
+                      React.createElement('div', { key: wine.id, style: { animation: `fadeInUp 0.4s ease-out ${Math.min(index, 10) * 30}ms forwards`, opacity: 0 } },
+                        React.createElement(WineCard, { wine: wine, language: language, regionBadge: region || null })
+                      )
+                    )
+                  )
+                )
+            );
+          })() : (
+            // Standard view: grouped list with sticky region headers, or flat list for selected region
+            selectedRegion ? (
+              React.createElement('div', {},
+                React.createElement(StickyRegionHeader, {
                   region: selectedRegion,
                   displayName: getRegionName(selectedRegion),
                   subtitle: getRegionSubtitle(selectedRegion)
-              }),
-              filteredWines.map((wine, index) =>
-                React.createElement('div', { key: wine.id, style: { animation: `fadeInUp 0.5s ease-out ${Math.min(index, 15) * 40}ms forwards`, opacity: 0 } },
-                  React.createElement(WineCard, { wine: wine, language: language })
+                }),
+                filteredWines.map((wine, index) =>
+                  React.createElement('div', { key: wine.id, style: { animation: `fadeInUp 0.5s ease-out ${Math.min(index, 15) * 40}ms forwards`, opacity: 0 } },
+                    React.createElement(WineCard, { wine: wine, language: language })
+                  )
                 )
               )
-            )
-          ) : (
-            // Grouped list with sticky region headers
-            React.createElement('div', {},
-              winesByRegion && winesByRegion.map((group, groupIndex) =>
-                React.createElement('div', { key: group.region },
-                  // Pass subtitle prop to sticky header
-                  React.createElement(StickyRegionHeader, {
+            ) : (
+              React.createElement('div', {},
+                winesByRegion && winesByRegion.map((group) =>
+                  React.createElement('div', { key: group.region },
+                    React.createElement(StickyRegionHeader, {
                       region: group.region,
                       displayName: getRegionName(group.region),
                       subtitle: getRegionSubtitle(group.region)
-                  }),
-                  group.wines.map((wine, index) =>
-                    React.createElement('div', { key: wine.id, style: { animation: `fadeInUp 0.4s ease-out ${Math.min(index, 10) * 30}ms forwards`, opacity: 0 } },
-                      React.createElement(WineCard, { wine: wine, language: language })
+                    }),
+                    group.wines.map((wine, index) =>
+                      React.createElement('div', { key: wine.id, style: { animation: `fadeInUp 0.4s ease-out ${Math.min(index, 10) * 30}ms forwards`, opacity: 0 } },
+                        React.createElement(WineCard, { wine: wine, language: language })
+                      )
                     )
                   )
                 )
