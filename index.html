@@ -1167,9 +1167,18 @@ const WineCard = ({ wine, language = 'pt', regionBadge = null }) => {
                     : [];
 
                   return React.createElement('div', { key: section.id, style: { marginTop: sIdx === 0 ? 0 : '2.5rem' } },
-                    // Section title
+                    // Section title — sticky below back button
                     React.createElement('div', {
-                      style: { borderBottom: `1px solid ${colors.gold}35`, paddingBottom: '0.5rem', marginBottom: '0.25rem' }
+                      style: {
+                        position: 'sticky',
+                        top: '3.5rem',
+                        zIndex: 15,
+                        backgroundColor: colors.bg,
+                        borderBottom: `1px solid ${colors.gold}35`,
+                        paddingTop: '0.5rem',
+                        paddingBottom: '0.5rem',
+                        marginBottom: '0.25rem'
+                      }
                     },
                       React.createElement('h2', {
                         style: {
@@ -1192,17 +1201,23 @@ const WineCard = ({ wine, language = 'pt', regionBadge = null }) => {
 
                     // Color subgroups (Vinho a Copo, Meias Garrafas)
                     hasColors && activeColors.map((color, cIdx) =>
-                      React.createElement('div', { key: color.id, style: { marginTop: cIdx === 0 ? '0.5rem' : '1.5rem' } },
-                        // Color sub-header
+                      React.createElement('div', { key: color.id, style: { marginTop: cIdx === 0 ? '0.5rem' : '1rem' } },
+                        // Color sub-header — sticky below section title (~3.5rem back button + ~2.5rem section header)
                         React.createElement('p', {
                           style: {
+                            position: 'sticky',
+                            top: '6rem',
+                            zIndex: 14,
+                            backgroundColor: colors.bg,
                             fontFamily: "'Cormorant Garamond', Georgia, serif",
-                            fontSize: '1rem',
+                            fontSize: '0.95rem',
                             color: colors.textMuted,
                             fontWeight: 600,
                             letterSpacing: '0.12em',
                             textTransform: 'uppercase',
-                            marginBottom: '0.25rem'
+                            paddingTop: '0.4rem',
+                            paddingBottom: '0.4rem',
+                            marginBottom: '0.1rem'
                           }
                         }, color.name[language]),
                         // Wines in this color group
